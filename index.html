@@ -1,0 +1,1263 @@
+<!doctype html><html lang="ar"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6b62"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="الوفاق"><meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.WIFAQ_STANDALONE=true;if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
+</head><body>
+<title>ميزان الوفاق الزوجي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@500;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=swap">
+<style>
+/* Layout: a single centered column of "letters" — one axis per screen, two rating rows per statement, report as paired columns */
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --ink:#14302e; --muted:#5b716e; --line:#d5dfdc;
+  --accent:#b2384f; --accent-soft:#f6e3e7; --teal:#1f6b62; --teal-soft:#dcece8;
+  --ok:#2f7d4f; --minor:#9a8a1f; --mid:#c27a1a; --big:#c4502a; --crit:#a3203a;
+  color-scheme:light;
+  --display:"Reem Kufi", "IBM Plex Sans Arabic", Tahoma, sans-serif;
+  --body:"IBM Plex Sans Arabic", "Segoe UI", Tahoma, sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 40px}
+.wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.35}
+h1{font-size:clamp(1.5rem,4vw,2rem);color:var(--teal)}
+h2{font-size:1.25rem}
+h3{font-size:1.02rem}
+p{margin:0}
+.muted{color:var(--muted)}
+.eyebrow{font-size:.82rem;letter-spacing:.04em;color:var(--accent);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+button{font:inherit;cursor:pointer;border-radius:10px;padding:8px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+button.primary{background:var(--teal);border-color:var(--teal);color:var(--surface);font-weight:600}
+button.ghost{background:transparent}
+button:focus-visible,input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.formula{font-family:var(--display);font-size:1.05rem;background:var(--teal-soft);border-radius:10px;padding:12px 16px;text-align:center}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;font-size:.9rem}
+.legend span{display:flex;align-items:center;gap:8px}
+.dot{width:12px;height:12px;border-radius:50%;flex:none}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:520px){.names{grid-template-columns:1fr}}
+
+/* progress */
+.progress{height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.who{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+
+/* items: compact table-like rows, three answer cells per statement */
+.qhead,.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto auto 64px;gap:6px 12px;align-items:center}
+.qhead{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:6px;border-bottom:1px solid var(--line);font-size:.76rem;font-weight:600;color:var(--muted)}
+.qhead span{display:flex;flex-direction:column;line-height:1.3;text-align:center}
+.qhead span:first-child{text-align:start}
+.qhead small{font-weight:400;font-size:.66rem}
+.qhead span:nth-child(2),.sc.a{width:146px}.qhead span:nth-child(3),.sc.i{width:146px}
+.qgroup{display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px 12px}
+.qgroup h3{font-size:.95rem;color:var(--teal);padding-block:8px 4px}
+.qrow{padding-block:7px;border-top:1px solid var(--line)}
+.qrow.missing{background:var(--accent-soft);border-radius:8px;outline:1px solid var(--accent)}
+.qt{font-size:.93rem;line-height:1.5}
+.negtag{font-size:.66rem;color:var(--accent);border:1px solid currentColor;border-radius:10px;padding:0 6px;margin-inline-start:6px;white-space:nowrap}
+.sc{display:grid;grid-template-columns:repeat(5,26px);gap:4px;justify-content:center}
+.sc input{position:absolute;opacity:0;pointer-events:none}
+.sc label{height:26px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:6px;cursor:pointer;font-size:.8rem;font-variant-numeric:tabular-nums}
+.sc input:focus-visible+label{outline:2px solid var(--accent);outline-offset:1px}
+.sc.a input:checked+label{background:var(--teal);border-color:var(--teal);color:var(--surface)}
+.sc.i input:checked+label{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.qw,.qhead span:last-child{align-self:stretch;display:flex;flex-direction:column;align-items:center;justify-content:center;border-inline-start:2px solid var(--line);padding-inline-start:10px;gap:2px}
+.qw b{font-size:.72rem;font-variant-numeric:tabular-nums;color:var(--muted)}
+.tier{display:flex;justify-content:space-between;align-items:center;margin-top:6px;padding:3px 10px;border-radius:6px;font-size:.74rem;font-weight:600;color:var(--tc);background:color-mix(in srgb,var(--tc) 12%,transparent)}
+.tier b{font-variant-numeric:tabular-nums}
+.tier+.qrow{border-top:0}
+.wdots{font-size:.6rem;letter-spacing:1px;color:var(--mid);direction:ltr;white-space:nowrap}
+.wdots i{font-style:normal;color:var(--line)}
+@media (max-width:620px){
+ .qhead,.qrow{grid-template-columns:auto auto minmax(0,1fr)}
+ .qhead span:first-child{display:none}
+ .qrow .qt{grid-column:1/-1}
+ .qhead span:nth-child(2),.sc.a,.qhead span:nth-child(3),.sc.i{width:auto}
+ .sc{grid-template-columns:repeat(5,24px);gap:3px}.sc label{height:24px}
+}
+.nav{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.err{color:var(--accent);font-weight:600}
+.hdr{display:flex;flex-direction:column;gap:4px}
+.phone{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px}
+.loginbox{max-width:560px;width:100%;margin-inline:auto;gap:14px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--chip);border-radius:999px;padding:4px}
+.seg button{box-shadow:none;border:0;background:transparent;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--teal);box-shadow:0 1px 2px var(--shadow),0 4px 12px var(--shadow)}
+.loginrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:stretch}
+@media (max-width:420px){.loginrow{grid-template-columns:1fr}}
+.rolebox{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--chip);border-radius:12px;padding:4px}
+.rolebox input{position:absolute;opacity:0;pointer-events:none}
+.rolebox label{display:flex;align-items:center;justify-content:center;padding:6px 16px;border-radius:9px;cursor:pointer;font-weight:700;color:var(--muted);min-width:64px}
+.rolebox input:checked+label{background:var(--teal);color:var(--surface);box-shadow:0 2px 8px var(--shadow-strong)}
+.rolebox input[value=w]:checked+label{background:var(--accent)}
+.rolebox input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+button.big{min-height:48px;font-size:1.02rem}
+.mecard .who{align-items:center}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+.phone select{width:auto;max-width:150px}
+#app,#journalView{display:flex;flex-direction:column;gap:12px}
+#app[hidden],#journalView[hidden]{display:none}
+.sbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.sbar button{padding:6px 12px;font-size:.88rem;display:flex;gap:6px;align-items:center}
+.sbar button small{font-size:.72rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.sbar button.on{background:var(--teal);border-color:var(--teal);color:var(--surface)}.sbar button.on small{color:var(--surface)}
+.sbar .sp{flex:1}
+
+.pages{display:flex;gap:6px}
+.pg{padding:2px 10px;border-radius:8px;font-weight:600;display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.pg small{font-size:.68rem;color:var(--accent);font-weight:600}
+.pg.full small{color:var(--ok)}
+.pg.on{background:var(--teal);border-color:var(--teal);color:var(--surface)}.pg.on small{color:var(--surface)}
+.kpis{display:flex;gap:24px;flex-wrap:wrap}
+.axes{display:flex;flex-direction:column;gap:8px}
+.stack{display:flex;flex-direction:column;gap:12px}
+
+/* report */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:640px){.cols{grid-template-columns:1fr}}
+.cols>*{min-width:0}
+.big{font-family:var(--display);font-size:1.9rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.band{display:inline-block;padding:2px 12px;border-radius:20px;font-size:.85rem;font-weight:600;background:var(--teal-soft);color:var(--teal)}
+.axis{display:flex;flex-direction:column;gap:4px}
+.axis .row{display:flex;justify-content:space-between;font-size:.92rem;gap:8px}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:4px}
+ol.needs{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px;counter-reset:n}
+ol.needs li{display:grid;grid-template-columns:28px 1fr auto;gap:10px;align-items:start;border-bottom:1px solid var(--line);padding-bottom:8px;counter-increment:n}
+ol.needs li::before{content:counter(n);font-family:var(--display);color:var(--muted);font-variant-numeric:tabular-nums}
+ol.needs li>div{min-width:0}
+.pts{font-family:var(--display);font-size:1.2rem;font-variant-numeric:tabular-nums;text-align:center;line-height:1.1}
+.pts small{display:block;font-family:var(--body);font-size:.68rem;font-weight:600}
+.sub{font-size:.8rem;color:var(--muted)}
+.dist{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.note{font-size:.88rem;color:var(--muted);border-inline-start:3px solid var(--accent);padding-inline-start:12px}
+.tag-sample{background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:6px 12px;font-weight:600;font-size:.9rem}
+/* tabs + journal */
+.tabs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-bottom:1px solid var(--line)}
+.tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-1px;display:flex;align-items:center;gap:8px}
+.tabs a[aria-selected="true"]{color:var(--teal);border-bottom-color:var(--teal)}
+.badge{background:var(--accent);color:var(--surface);border-radius:12px;min-width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:.78rem;padding:0 6px;font-variant-numeric:tabular-nums}
+.subtabs{display:flex;flex-wrap:wrap;gap:6px}
+.subtabs button{padding:7px 14px;border-radius:20px;font-size:.92rem;display:flex;gap:6px;align-items:center}
+.subtabs button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--surface)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:520px){.stats{grid-template-columns:1fr}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.stat b{font-family:var(--display);font-size:1.7rem;display:block;line-height:1.2;font-variant-numeric:tabular-nums}
+.stat span{font-size:.85rem;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label{border:1px solid var(--line);border-radius:20px;padding:5px 14px;cursor:pointer;font-size:.92rem}
+.chips input:checked+label{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.chips input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+textarea,select{font:inherit;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+textarea{min-height:76px;resize:vertical}
+.preview{background:var(--accent-soft);border-radius:10px;padding:12px 16px;font-size:1.02rem}
+.issue{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.issue.hot{border-inline-start:4px solid var(--accent)}
+.issue .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.82rem;color:var(--muted)}
+.pill{border-radius:20px;padding:1px 10px;font-size:.78rem;font-weight:600;border:1px solid currentColor}
+.reply{background:var(--teal-soft);border-radius:10px;padding:10px 14px;font-size:.95rem}
+.sev{letter-spacing:2px;color:var(--accent)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:600px){.two{grid-template-columns:1fr}}
+.two>*{min-width:0}
+.score10{display:grid;grid-template-columns:repeat(10,1fr);gap:4px}
+.score10 input{position:absolute;opacity:0;pointer-events:none}
+.score10 label{border:1px solid var(--line);border-radius:8px;text-align:center;padding:8px 0;cursor:pointer;font-variant-numeric:tabular-nums}
+.score10 input:checked+label{background:var(--teal);border-color:var(--teal);color:var(--surface)}
+.score10 input:focus-visible+label{outline:3px solid var(--accent);outline-offset:2px}
+.code{font-family:var(--display);font-size:1.6rem;letter-spacing:.2em;direction:ltr;display:inline-block;background:var(--teal-soft);padding:4px 14px;border-radius:10px;user-select:all}
+a.wa{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:10px 18px;background:var(--ok);color:var(--surface);text-decoration:none;font-weight:600}
+.chart{overflow-x:auto}
+.chart svg{width:100%;min-width:420px;height:auto;display:block}
+.chart .grid{stroke:var(--line)}
+.chart text{fill:var(--muted);font-size:11px;font-family:var(--body)}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 20px;border-radius:10px;z-index:20;max-width:90vw}
+.langbox{margin-inline-start:auto;display:flex;align-items:center;gap:8px}
+.langbox select{width:auto;padding:5px 8px;font-size:.85rem}
+.paths{display:flex;flex-wrap:wrap;gap:6px;direction:ltr;justify-content:flex-end}
+.path{font-size:.78rem;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+.path b{font-weight:600}.path.on{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
+.tblwrap{overflow-x:auto}
+.sep{border-color:var(--crit)}.sep h2{color:var(--crit);font-size:1.15rem}
+.kidsline{background:var(--teal-soft);color:var(--teal);border-radius:8px;padding:6px 12px;font-size:.9rem;font-weight:600}
+.kidsban{border-color:var(--teal)}
+.kids{display:flex;flex-wrap:wrap;gap:6px}
+.kid{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:2px 4px 2px 12px}
+.kid button{padding:0 8px;border:0;font-size:1rem;line-height:1.4}
+.kidadd{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) auto;gap:8px;align-items:end}
+@media (max-width:480px){.kidadd{grid-template-columns:1fr 1fr}.kidadd button{grid-column:1/-1}}
+.navbtn{padding:6px 12px;font-size:.85rem}.navbtn.in{border-color:var(--teal);color:var(--teal);direction:ltr;font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
+.sosbtn{background:var(--crit);border-color:var(--crit);color:var(--surface);font-weight:600;padding:6px 14px;font-size:.88rem}
+.sosp{border:2px solid var(--crit)}
+.timer{font-family:var(--display);font-size:2.6rem;text-align:center;font-variant-numeric:tabular-nums;color:var(--crit)}
+.kidsbox{border-color:var(--teal)}.kidsbox h3{color:var(--teal)}
+.urgent{border:2px solid var(--crit);background:color-mix(in srgb,var(--crit) 8%,var(--surface));border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;color:var(--ink)}
+.urgent>div b{color:var(--crit)}
+.urgbox{border:1px dashed var(--crit);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.urgbox input[type=checkbox]{width:18px;height:18px;accent-color:var(--crit)}
+.pill.urg{color:var(--crit);background:color-mix(in srgb,var(--crit) 10%,transparent)}
+.issue.isurg{border-color:var(--crit);border-inline-start:4px solid var(--crit)}
+.urgbtn{border-color:var(--crit);color:var(--crit);font-weight:600}
+.money{border:1px solid var(--big);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.money h3{color:var(--big)}
+.pact{display:flex;flex-direction:column}
+.prow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:start;padding-block:8px;border-top:1px solid var(--line)}
+.prow input{margin-top:5px;width:18px;height:18px;accent-color:var(--teal)}
+.pst{font-size:.76rem;white-space:nowrap}
+@media (max-width:520px){.prow{grid-template-columns:auto minmax(0,1fr)}.pst{grid-column:2}}
+.reason{margin-top:6px;display:flex;flex-direction:column;gap:4px;font-size:.88rem;border-inline-start:2px solid var(--teal);padding-inline-start:10px}
+.rwrite{display:flex;flex-direction:column;gap:4px}.rwrite textarea{min-height:48px;font-size:.88rem}.rwrite button{align-self:flex-start;padding:4px 12px;font-size:.82rem}
+.tbl{border-collapse:collapse;width:100%;font-size:.88rem;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:start;white-space:nowrap}
+.tbl th{color:var(--muted);font-weight:600;font-size:.8rem}
+ol.agenda{margin:0;padding-inline-start:22px;display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ===== modern skin: soft elevated surfaces, pill controls, real buttons ===== */
+:root{--shadow:rgba(20,48,46,.08);--shadow-strong:rgba(20,48,46,.16);--chip:#f2f6f5;--teal-strong:#17564f;--radius:16px}
+
+body{background:radial-gradient(1200px 500px at 100% -10%,var(--teal-soft),transparent 60%),var(--bg);background-attachment:fixed}
+.panel,.qgroup,.stat,.issue{border-radius:var(--radius);border-color:transparent;box-shadow:0 1px 2px var(--shadow),0 6px 24px var(--shadow)}
+.panel{padding:18px 20px}
+.qgroup{padding:6px 16px 10px}
+h1{letter-spacing:-.01em}
+
+/* navigation as a floating segmented bar */
+.tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:8;background:color-mix(in srgb,var(--surface) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+ border:0;border-radius:var(--radius);padding:6px;box-shadow:0 1px 2px var(--shadow),0 8px 28px var(--shadow)}
+.tabs a{border:0;margin:0;border-radius:12px;padding:9px 16px;color:var(--muted);transition:background .15s,color .15s}
+.tabs a:hover{background:var(--chip);color:var(--ink)}
+.tabs a[aria-selected="true"]{background:var(--teal);color:var(--surface);box-shadow:0 2px 8px var(--shadow-strong)}
+.tabs a[aria-selected="true"] .badge{background:var(--surface);color:var(--accent)}
+.qhead{top:calc(env(safe-area-inset-top,0px) + 64px);border-radius:12px;padding:8px 12px;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* buttons that look and feel like buttons */
+button,a.wa{font-weight:600;min-height:40px;border-radius:999px;padding:9px 18px;border:1px solid var(--line);background:var(--surface);color:var(--ink);
+ box-shadow:0 1px 2px var(--shadow),0 2px 6px var(--shadow);transition:transform .12s ease,box-shadow .12s ease,background .15s,border-color .15s}
+button:hover:not(:disabled),a.wa:hover{transform:translateY(-1px);box-shadow:0 2px 4px var(--shadow),0 8px 18px var(--shadow-strong);border-color:var(--teal)}
+button:active:not(:disabled),a.wa:active{transform:translateY(1px);box-shadow:0 1px 2px var(--shadow)}
+button:disabled{opacity:.55;cursor:not-allowed}
+button.primary{background:linear-gradient(180deg,var(--teal),var(--teal-strong));border-color:transparent;color:var(--surface)}
+button.ghost{background:var(--surface)}
+.sosbtn{background:linear-gradient(180deg,var(--crit),color-mix(in srgb,var(--crit) 80%,#000));border-color:transparent;color:#fff}
+.urgbtn{background:color-mix(in srgb,var(--crit) 8%,var(--surface))}
+.navbtn,.sbar button,.subtabs button,.pg{min-height:36px;padding:6px 14px}
+.subtabs button[aria-pressed="true"],.sbar button.on,.pg.on{background:var(--teal);border-color:transparent;color:var(--surface);box-shadow:0 2px 8px var(--shadow-strong)}
+#leave{min-height:30px;padding:3px 12px;box-shadow:none}
+.kid button{min-height:0;box-shadow:none;padding:0 8px}
+
+/* answer keys: tactile square keys */
+.sc{grid-template-columns:repeat(5,30px);gap:5px}
+.sc label{height:30px;border-radius:9px;background:var(--chip);border:1px solid transparent;font-weight:600;color:var(--muted);
+ box-shadow:inset 0 -2px 0 var(--shadow);transition:transform .1s,background .15s,color .15s}
+.sc label:hover{border-color:var(--teal);color:var(--ink);transform:translateY(-1px)}
+.sc.a input:checked+label{box-shadow:0 3px 8px var(--shadow-strong)}
+.sc.i input:checked+label{box-shadow:0 3px 8px var(--shadow-strong)}
+.score10 label,.chips label{background:var(--chip);border-color:transparent;font-weight:600;transition:background .15s,transform .1s}
+.chips label:hover,.score10 label:hover{transform:translateY(-1px)}
+@media (max-width:620px){.sc{grid-template-columns:repeat(5,26px);gap:3px}.sc label{height:28px}}
+.qhead span:nth-child(2),.sc.a,.qhead span:nth-child(3),.sc.i{width:180px}
+@media (max-width:620px){.qhead span:nth-child(2),.sc.a,.qhead span:nth-child(3),.sc.i{width:auto}}
+@media (max-width:520px){.tabs{gap:4px;padding:5px}.tabs a{padding:8px 12px;font-size:.9rem}.navbtn,.sosbtn{min-height:32px;padding:4px 11px;font-size:.78rem}}
+
+/* item numbers */
+.qt{display:flex;align-items:flex-start;gap:10px}
+.qn{flex:none;min-width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;background:var(--teal-soft);color:var(--teal);
+ font-size:.76rem;font-weight:700;font-variant-numeric:tabular-nums;margin-top:1px}
+.qtx{min-width:0}
+.qn.sm{min-width:22px;height:22px;font-size:.7rem;margin-inline-end:6px;vertical-align:middle}
+
+/* inputs */
+.field input,textarea,select{border-radius:12px;border-color:var(--line);background:var(--surface);transition:border-color .15s,box-shadow .15s}
+.field input:focus,textarea:focus,select:focus{outline:none;border-color:var(--teal);box-shadow:0 0 0 4px var(--teal-soft)}
+.progress{height:8px;border-radius:999px}.progress i{border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--accent))}
+.tier{border-radius:999px;padding:4px 14px}
+@media (prefers-reduced-motion:reduce){button,a.wa,.sc label{transition:none}button:hover:not(:disabled){transform:none}}
+</style>
+
+<div class="wrap" dir="rtl" lang="ar">
+ <nav class="tabs" role="tablist">
+  <a href="#survey" role="tab" id="tab-survey">الاستبيان والتقرير</a>
+  <a href="#journal" role="tab" id="tab-journal">بوابة الزوجين <span class="badge" id="jbadge" hidden></span></a>
+  <button class="navbtn" id="navLogin">تسجيل الدخول</button>
+  <button class="navbtn" id="navApp">تثبيت كتطبيق</button>
+  <button class="sosbtn" id="sosBtn">نحن في خلاف الآن</button>
+  <span class="langbox" data-notr><span id="langStat" class="sub"></span><select id="langSel" aria-label="Language"></select></span>
+ </nav>
+ <div id="app"></div>
+ <div id="sos" hidden></div>
+ <div id="appInfo" hidden></div>
+ <div id="journalView" hidden></div>
+ <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<script>
+const LEVEL_A=["أبداً","نادراً","أحياناً","غالباً","دائماً"];
+const LEVEL_I=["غير مهم","قليل","متوسط","مهم","أساسي"];
+/* item format: "w|text" positive behaviour, "!w|text" negative behaviour (scored in reverse).
+   w = research weight 1-5, an estimate drawn from Gottman's predictors (contempt, criticism,
+   defensiveness, stonewalling, repair attempts, fondness & admiration, turning toward) and common marital-satisfaction scales. */
+const RAW={
+ h:[
+  {id:"respect",title:"مؤشر احترام الزوج",index:true,items:["5|تجعلني أشعر بالتقدير","4|تحترمني أمام الأبناء","4|تحترمني أمام أهلها","!4|تقلل من قراراتي","!5|تتحدث معي بأسلوب فوقي","!4|ترفع صوتها عليّ","!4|تعاملني كمنافس لها","5|تجعلني أشعر بالثقة والاحترام","4|تدعمني عندما أتعرض للفشل","4|تجعلني أشعر بأنني رجل ناجح في نظرها"]},
+  {id:"anger",title:"الغضب والخلاف",items:["5|عندما أكون غاضباً تحاول تهدئة الموقف","!4|إذا ارتفع صوتي ترفع صوتها مباشرة","!4|تتحدث معي بأسلوب تحدٍّ أو منافسة","!4|تستخدم أسلوب «سأثبت أنني الأقوى»","3|تفرّق بين احتواء الخلاف وبين التنازل عن الكرامة","3|تختار الوقت المناسب لمناقشة المشكلة","4|تستطيع تهدئتي عندما أكون منفعلاً","!5|تستخدم السخرية أو الاستهزاء أثناء الخلاف","!3|تستدعي أخطاء الماضي عند كل خلاف","!5|تنسحب أو تقاطعني بصمت طويل بعد الخلاف","4|تعتذر عندما تخطئ","4|تجعلني أشعر أنها شريكتي وليست خصمي"]},
+  {id:"love",title:"المودة والقرب",items:["4|تعبّر لي عن حبها بالكلام أو الأفعال","3|تستقبلني بترحيب عندما أعود إلى البيت","4|تهتم بتفاصيل يومي","4|تبادر بالود واللطف دون أن أطلب","5|أشعر معها بالراحة والسكينة"]},
+  {id:"intimacy",title:"العلاقة الحميمة والهجر وتفقّد الحاجة",items:["4|نشعر بالانسجام والقرب في علاقتنا الخاصة","4|تتفقّد حاجتي العاطفية وتسألني عمّا ينقصني","4|تنتبه لتعبي أو ضيقي دون أن أتكلم","4|تبادر بالقرب الحميمي","!4|ترفض العلاقة الحميمة دون سبب واضح أو تستخدمها للعقاب","4|نتحدث بصراحة عن احتياجاتنا في العلاقة الخاصة","!5|تهجرني في الفراش أو في الكلام لأيام بعد الخلاف","!4|تنشغل عني بالهاتف أو الأبناء أو الأهل حتى أشعر بالإهمال","4|تراعي حاجتي ورغبتي في العلاقة الخاصة"]},
+  {id:"talk",title:"التواصل والحوار",items:["4|تستمع لي دون مقاطعة","!4|تفسّر كلامي تفسيراً سلبياً","5|أستطيع أن أصارحها بما يضايقني دون خوف","!3|تلجأ للصمت أو التلميح بدل أن تخبرني بما يزعجها","4|نتحاور في القرارات المهمة قبل اتخاذها"]},
+  {id:"trust",title:"الثقة والأمانة",items:["5|أثق بها ثقة كاملة","!5|تخفي عني أموراً مهمة","4|تحفظ أسرار بيتنا","4|تفي بوعودها","!4|أشعر بالشك أو الغيرة بسبب تصرفاتها"]},
+  {id:"home",title:"الأسرة والمال والمستقبل",items:["4|نقضي وقتاً خاصاً معاً بانتظام","3|تتعاون معي في شؤون البيت والأبناء","3|تحترم أهلي وتحسن معاملتهم","!4|تسمح بتدخل أهلها في قراراتنا","4|نتفق على أسلوب تربية الأبناء","4|نتفق على طريقة إدارة المال","3|تراعي الظروف المالية للأسرة","4|لدينا أهداف وأحلام مشتركة للمستقبل","4|نتشارك القيم والمبادئ نفسها","4|تدعم طموحي وتطوري الشخصي"]},
+  {id:"money",title:"الضيق المادي والأزمات",items:["5|تقف معي وتصبر عندما أمرّ بضيق مادي","!5|تطلب الطلاق أو تهدد به عندما تضيق أحوالي المادية","!5|تزداد الخلافات والانتقادات كلما ضاقت أحوالنا المادية","!4|تقارن وضعنا المادي بغيرنا أمامي","!4|تحمّلني وحدي مسؤولية الأزمة وتلومني باستمرار","4|تتفهّم أن الأزمة مؤقتة وتشاركني في خطة الخروج منها","4|تخفّض المصروفات معي في وقت الضيق","!4|تُدخل أهلها أو غيرهم في مشكلاتنا المالية"]},
+  {id:"kids",title:"الأبناء وقت الخلاف",kids:true,items:["!5|تتشاجر معي أمام الأبناء","!5|تتحدث عني بسوء أمام الأبناء","!5|تذكر الطلاق أو الانفصال أمام الأبناء","!5|تستخدم الأبناء وسيلة ضغط أو لنقل الرسائل بيننا","4|تطمئن الأبناء بعد أي خلاف بيننا","4|تحرص على أن يبقى الأبناء قريبين مني مهما اختلفنا","4|نظهر أمام الأبناء متفقين في قرارات التربية حتى لو اختلفنا بيننا"]}
+ ],
+ w:[
+  {id:"respect",title:"مؤشر الأمان العاطفي للزوجة",index:true,items:["4|يعبّر لي عن حبه بالكلام","!5|يستخف بمشاعري عندما أعبّر عنها","4|يحترمني أمام أهله","4|يحترمني أمام الأبناء","!4|ينتقدني أمام الآخرين","5|أشعر بالأمان معه وأثق به","4|يشعرني بأنني أولوية في حياته","5|يقدّر جهدي في البيت أو العمل","4|يقف معي في الأوقات الصعبة","!4|يقارنني بغيري"]},
+  {id:"anger",title:"الغضب والخلاف",items:["5|عندما أكون غاضبة يحاول تهدئة الموقف","!5|يرفع صوته أو يستخدم ألفاظاً جارحة أثناء الخلاف","!5|يلجأ إلى الصمت العقابي أو الهجر الطويل","!5|يهدد بالطلاق أو الانفصال عند الخلاف","4|يعترف بخطئه ويعتذر عند الحاجة","3|يختار الوقت المناسب لمناقشة المشكلة","!5|يستخدم السخرية أو الاستهزاء أثناء الخلاف","!3|يستدعي أخطاء الماضي عند كل خلاف","4|يسمع وجهة نظري قبل أن يحكم","!4|يتعامل مع شكواي كأنها هجوم ويدافع عن نفسه","!4|يتحدث معي بأسلوب فوقي أو آمر","4|يجعلني أشعر أنه شريكي وليس خصمي"]},
+  {id:"love",title:"المودة والقرب",items:["4|يقضي وقتاً معي باهتمام دون انشغال بالهاتف","2|يتذكر المناسبات الخاصة","2|يفاجئني بلفتات أو هدايا بسيطة","4|يمدحني ويثني عليّ","4|يبادر بالود واللطف دون أن أطلب"]},
+  {id:"intimacy",title:"العلاقة الحميمة والهجر وتفقّد الحاجة",items:["4|نشعر بالانسجام والقرب في علاقتنا الخاصة","4|يتفقّد حاجتي العاطفية ويسألني عمّا ينقصني","4|ينتبه لتعبي أو ضيقي دون أن أتكلم","4|يهتم بمشاعري ومقدمات القرب قبل العلاقة الحميمة","!4|يرفض العلاقة الحميمة أو يتجاهلها لفترات طويلة","4|نتحدث بصراحة عن احتياجاتنا في العلاقة الخاصة","!5|يهجرني في الفراش أو في الكلام لأيام بعد الخلاف","!4|ينشغل عني بالهاتف أو العمل أو الأصدقاء حتى أشعر بالإهمال","4|يراعي حاجتي ورغبتي في العلاقة الخاصة"]},
+  {id:"talk",title:"التواصل والحوار",items:["4|يستمع لي دون مقاطعة","!4|يفسّر كلامي تفسيراً سلبياً","5|أستطيع أن أصارحه بما يضايقني دون خوف","!3|يلجأ للصمت بدل أن يخبرني بما يزعجه","4|يشاركني في القرارات المهمة قبل اتخاذها"]},
+  {id:"trust",title:"الثقة والأمانة",items:["5|أثق به ثقة كاملة","4|يحفظ أسرار بيتنا","!4|أشعر بالشك أو الغيرة بسبب تصرفاته"]},
+  {id:"home",title:"الأسرة والمال والمستقبل",items:["4|نقضي وقتاً خاصاً معاً بانتظام","3|يحترم أهلي ويحسن معاملتهم","!4|يسمح بتدخل أهله في قراراتنا","4|نتفق على أسلوب تربية الأبناء","4|يوفر احتياجات الأسرة بقدر استطاعته","4|لدينا أهداف وأحلام مشتركة للمستقبل","4|نتشارك القيم والمبادئ نفسها","4|يدعم طموحي وتطوري الشخصي"]},
+  {id:"money",title:"الضيق المادي والأزمات",items:["4|يضع خطة واضحة للخروج من الضيق المادي ويشركني فيها","4|يطمئنني على مستقبل الأسرة في وقت الأزمات","!4|ينعزل أو يصبح عصبياً عندما يضيق وضعه المادي","!4|يحمّلني مسؤولية الضائقة المادية أو يلومني على المصروف","4|يتقبّل مساهمتي ورأيي في حل الأزمة"]},
+  {id:"kids",title:"الأبناء وقت الخلاف",kids:true,items:["!5|يتشاجر معي أمام الأبناء","!5|يتحدث عني بسوء أمام الأبناء","!5|يذكر الطلاق أو الانفصال أمام الأبناء","!5|يستخدم الأبناء وسيلة ضغط أو لنقل الرسائل بيننا","4|يطمئن الأبناء بعد أي خلاف بيننا","4|يحرص على أن يبقى الأبناء قريبين مني مهما اختلفنا","4|نظهر أمام الأبناء متفقين في قرارات التربية حتى لو اختلفنا بيننا"]}
+ ]};
+const FORMS={};
+for(const k in RAW)FORMS[k]=RAW[k].map(ax=>({...ax,items:ax.items.map(s=>{const neg=s[0]==="!",[w,t]=(neg?s.slice(1):s).split("|");return{t,w:+w,neg}}).sort((a,b)=>b.w-a.w)}));
+const TIER={5:"قوة حاسمة · تؤدي إلى الانفصال ما لم تُعالج",4:"قوة عالية",3:"قوة متوسطة",2:"قوة خفيفة",1:"قوة خفيفة"};
+const PAGES=[[0,1,8],[2,3,4],[5,6,7]];
+function itemList(k){let n=0;const out=[];PAGES.flat().forEach(i=>{const ax=FORMS[k][i];ax.items.forEach((it,j)=>out.push({n:++n,id:ax.id+j,t:it.t,w:it.w,neg:it.neg,ax:ax.title,kids:!!ax.kids}))});return out}
+const NUMS={};const numOf=(k,id)=>{if(!NUMS[k]){NUMS[k]={};itemList(k).forEach(x=>NUMS[k][x.id]=x.n)}return NUMS[k][id]};   // three pages per partner
+
+const CATS=[
+ {max:4,name:"ليست مشكلة",c:"--ok"},{max:8,name:"مشكلة بسيطة",c:"--minor"},{max:12,name:"مشكلة متوسطة",c:"--mid"},
+ {max:16,name:"مشكلة كبيرة",c:"--big"},{max:20,name:"مشكلة حرجة",c:"--crit"}];
+const cat=p=>CATS.find(c=>p<=c.max);
+const achieved=(f,neg)=>neg?6-f:f;                       // turn frequency into "how well the need is met"
+const pain=(a,i)=>(5-a)*i;                                // the user's formula
+const impact=(a,i,w)=>Math.round((5-a)*(i+w)/2);          // pain with importance blended with the research weight
+
+const KEY="wifaq-survey-v7";
+let S=load()||fresh();
+function fresh(){return{stage:"intro",names:{h:"",w:""},ans:{h:{},w:{}},page:0,sample:false,online:false,noKids:false}}
+function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const $=s=>document.querySelector(s);
+const app=$("#app");
+const esc=t=>String(t).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
+const nm=k=>S.names[k]||(k==="h"?"الزوج":"الزوجة");
+const legendHTML=`<div class="legend">${CATS.map((c,i)=>`<span><i class="dot" style="background:var(${c.c})"></i>${c.name} (${i?CATS[i-1].max+1:0}–${c.max})</span>`).join("")}</div>`;
+const wDots=w=>`<span class="wdots" title="الوزن العالمي ${w} من 5">${"●".repeat(w)}<i>${"●".repeat(5-w)}</i></span>`;
+
+function isDone(k){return FORMS[k].filter(a=>!(S.noKids&&a.kids)).every(ax=>ax.items.every((_,j)=>{const v=S.ans[k][ax.id+j];return v&&v[0]&&v[1]}))}
+function render(){save();({intro,fill,handover,report})[S.stage==="fill-h"||S.stage==="fill-w"?"fill":S.stage]();if(typeof surveyBar==="function")surveyBar();window.scrollTo(0,0)}
+
+const myRole=()=>typeof J!=="undefined"&&J.state==="ready"&&J.link?J.link.role:null;
+function intro(){
+ app.innerHTML=`
+ <header class="hdr"><span class="eyebrow">استبيان للزوجين</span><h1>ميزان الوفاق الزوجي</h1>
+  <p class="muted">يقيّم كل طرف سلوك الآخر في ${FORMS.h.reduce((n,a)=>n+a.items.length,0)} عبارة، على 3 صفحات. لكل عبارة ثلاث خانات: كم يحدث السلوك، وكم يهمّك، ووزنه في الأبحاث العالمية.</p></header>
+ <section class="panel">
+  <div class="formula">درجة الألم = (5 − التحقق) × الأهمية</div>
+  <p class="muted">العبارات السلبية مثل «ترفع صوتها عليّ» تُحسب عكسياً: كلما تكرر السلوك ارتفعت درجة الألم. والترتيب النهائي يمزج أهميتك الشخصية بالوزن العالمي للبند، المستند إلى أبحاث Gottman عن أقوى منبئات استقرار الزواج: الاحتقار والسخرية، والنقد، والدفاعية، والانسحاب، ومحاولات الإصلاح، والتقدير المتبادل.</p>
+  ${legendHTML}
+  <label class="sub" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="nokids" ${S.noKids?"checked":""}> ليس لدينا أبناء (يُخفي محور «الأبناء وقت الخلاف»)</label>
+  <div class="names">
+   <div class="field"><label for="nh">اسم الزوج (اختياري)</label><input id="nh" value="${esc(S.names.h)}" placeholder="أحمد"></div>
+   <div class="field"><label for="nw">اسم الزوجة (اختياري)</label><input id="nw" value="${esc(S.names.w)}" placeholder="سارة"></div>
+  </div>
+  <p class="note">يملأ الزوج أولاً ثم يسلّم الجهاز للزوجة. لا تظهر إجابات أحدكما للآخر قبل التقرير، وتُحفظ على هذا الجهاز فقط.</p>
+  <div class="btns"><button class="primary" id="go">${myRole()?(myRole()==="h"?"ابدأ استبياني (الزوج)":"ابدئي استبيانك (الزوجة)"):"ابدأ استبيان الزوج"}</button><button class="ghost" id="demo">عرض تقرير تجريبي</button></div>
+ </section>`;
+ $("#go").onclick=()=>{if(myRole())return startOnline();S.noKids=$("#nokids").checked;S.names.h=$("#nh").value.trim();S.names.w=$("#nw").value.trim();S.stage="fill-h";S.page=0;S.sample=false;render()};
+ $("#demo").onclick=()=>{S=fresh();S.sample=true;S.names={h:"أحمد",w:"سارة"};
+  for(const k of["h","w"])FORMS[k].forEach(ax=>ax.items.forEach((it,j)=>{const r=Math.random(),good=r<.75;
+   const f=good?(it.neg?Math.ceil(Math.random()*2):3+Math.ceil(Math.random()*2)):(it.neg?3+Math.ceil(Math.random()*2):Math.ceil(Math.random()*2));
+   S.ans[k][ax.id+j]=[f,2+Math.ceil(Math.random()*3)]}));
+  S.stage="report";render()};
+}
+
+function fill(){
+ const mr0=myRole();if(mr0&&S.stage!=="fill-"+mr0)return startOnline();
+ const k=S.stage==="fill-h"?"h":"w", form=FORMS[k].filter(a=>!(S.noKids&&a.kids)), axes=PAGES[S.page].map(i=>FORMS[k][i]).filter(a=>!(S.noKids&&a.kids));
+ const total=form.reduce((n,a)=>n+a.items.length,0), cnt=()=>Object.values(S.ans[k]).filter(v=>v[0]&&v[1]).length;
+ const ok=id=>{const v=S.ans[k][id];return!!(v&&v[0]&&v[1])};
+ const pageMissing=pi=>PAGES[pi].map(i=>FORMS[k][i]).filter(a=>!(S.noKids&&a.kids)).reduce((n,ax)=>n+ax.items.filter((_,j)=>!ok(ax.id+j)).length,0);
+ const miss=PAGES.map((_,pi)=>pageMissing(pi));
+ const scale=(k,id,r,v)=>`<div class="sc ${r}" role="radiogroup" aria-label="${r==="a"?"كم يحدث":"الأهمية"}">${[1,2,3,4,5].map(n=>
+   `<input type="radio" id="${k}-${id}-${r}${n}" name="${k}-${id}-${r}" value="${n}" ${v===n?"checked":""}><label for="${k}-${id}-${r}${n}" title="${(r==="a"?LEVEL_A:LEVEL_I)[n-1]}">${n}</label>`).join("")}</div>`;
+ app.innerHTML=`
+ <div class="who"><span class="eyebrow">${esc(nm(k))} ${k==="h"?"يقيّم الزوجة":"تقيّم الزوج"}</span><div class="pages">${PAGES.map((_,pi)=>`<button class="pg ${pi===S.page?"on":""} ${miss[pi]?"":"full"}" data-pg="${pi}" aria-label="الصفحة ${pi+1}">${pi+1}${miss[pi]?`<small>${miss[pi]}</small>`:`<small>✓</small>`}</button>`).join("")}</div></div>
+ <div class="progress"><i style="width:${cnt()/total*100}%"></i></div>
+ <div class="qhead">
+  <span>العبارة</span><span>كم يحدث<small>1 أبداً · 5 دائماً</small></span><span>الأهمية لي<small>1 غير مهم · 5 أساسي</small></span><span>قوة النقطة<small>الوزن العالمي</small></span>
+ </div>
+ ${axes.map(ax=>`<section class="qgroup"><h3>${ax.title}</h3>
+  ${ax.items.map((it,j)=>{const id=ax.id+j,v=S.ans[k][id]||[],tier=(j===0||ax.items[j-1].w!==it.w)?`<div class="tier" style="--tc:var(${it.w>=5?"--crit":it.w===4?"--big":it.w===3?"--mid":"--minor"})"><span>${TIER[it.w]}</span><b>${it.w}/5</b></div>`:"";return tier+`<div class="qrow" data-id="${id}">
+   <div class="qt"><span class="qn">${numOf(k,id)}</span><span class="qtx">${it.t}${it.neg?`<span class="negtag">سلوك سلبي</span>`:""}</span></div>
+   ${scale(k,id,"a",v[0])}${scale(k,id,"i",v[1])}<div class="qw">${wDots(it.w)}<b>${it.w}</b></div></div>`}).join("")}
+ </section>`).join("")}
+ <p class="err" id="err" ${S.showMiss?"":"hidden"}>لا يكتمل الاستبيان قبل الإجابة عن جميع الأسئلة. بقي: ${miss.map((n,pi)=>n?`الصفحة ${pi+1} (${n})`:"").filter(Boolean).join("، ")}.</p>
+ <p class="sub">يمكنك التنقل بين الصفحات بحرية، والرقم الصغير على كل صفحة هو عدد الأسئلة المتبقية فيها.</p>
+ <div class="nav"><button class="ghost" id="back">${S.page?"السابق":S.online?"العودة إلى البوابة":"العودة للبداية"}</button>
+  <button class="primary" id="next">${S.page<PAGES.length-1?"الصفحة التالية":"إنهاء الاستبيان"}</button></div>`;
+ app.querySelectorAll("input[type=radio]").forEach(inp=>inp.onchange=()=>{
+  const row=inp.closest(".qrow"),id=row.dataset.id,ri=inp.name.endsWith("-i")?1:0,v=S.ans[k][id]||[0,0];
+  v[ri]=+inp.value;S.ans[k][id]=v;save();if(S.online&&typeof onlineSave==="function")onlineSave(k);if(v[0]&&v[1])row.classList.remove("missing");
+  $(".progress i").style.width=cnt()/total*100+"%"});
+ $("#back").onclick=()=>{if(S.page){S.page--;return render()}else if(S.online){S=fresh();save();location.hash="#journal";return}else S.stage="intro";render()};
+ $("#next").onclick=()=>{
+  if(S.page<PAGES.length-1){S.page++;S.showMiss=false;return render()}
+  const now=PAGES.map((_,pi)=>pageMissing(pi)),first=now.findIndex(n=>n>0);
+  if(first>=0){S.page=first;S.showMiss=true;return render()}
+  S.showMiss=false;
+  if(S.online){onlineDone(k);return}const o=k==="h"?"w":"h";S.page=0;if(isDone(o))S.stage="report";else{S.next=o;S.stage="handover"}render()};
+ app.querySelectorAll("[data-pg]").forEach(b=>b.onclick=()=>{S.page=+b.dataset.pg;render()});
+ if(S.showMiss){const rows=[...app.querySelectorAll(".qrow")].filter(el=>!ok(el.dataset.id));rows.forEach(el=>el.classList.add("missing"));
+  if(rows[0])setTimeout(()=>rows[0].scrollIntoView({behavior:"smooth",block:"center"}),50)}
+}
+
+function handover(){const o=S.next||"w",d=o==="h"?"w":"h";
+ app.innerHTML=`<section class="panel" style="text-align:center;align-items:center;padding-block:36px">
+  <span class="eyebrow">اكتمل استبيان ${esc(nm(d))}</span><h2>سلّم الجهاز الآن إلى ${esc(nm(o))}</h2>
+  <p class="muted">الإجابات محفوظة ومخفية حتى يظهر التقرير المشترك.</p>
+  <button class="primary" id="go">${o==="w"?"ابدئي استبيان الزوجة":"ابدأ استبيان الزوج"}</button></section>`;
+ $("#go").onclick=()=>{S.stage="fill-"+o;S.page=0;render()};
+}
+
+function analyse(k){
+ const rows=[];let num=0,den=0;const axes=[];
+ FORMS[k].filter(a=>!(S.noKids&&a.kids)).forEach(ax=>{let an=0,ad=0;ax.items.forEach((it,j)=>{const[f,i]=S.ans[k][ax.id+j]||[3,3],a=achieved(f,it.neg),wt=(i+it.w)/2;
+  rows.push({id:ax.id+j,t:it.t,neg:it.neg,f,a,i,w:it.w,p:pain(a,i),x:impact(a,i,it.w),ax:ax.title});an+=(a-1)*wt;ad+=4*wt});
+  num+=an;den+=ad;axes.push({title:ax.title,index:ax.index,pct:Math.round(an/ad*100)})});
+ rows.sort((x,y)=>y.x-x.x||y.p-x.p||y.w-x.w);
+ return{rows,axes,overall:Math.round(num/den*100),index:axes.find(a=>a.index)};
+}
+function band(p,isH){
+ if(p>=90)return[isH?"يشعر بتقدير عالٍ":"تشعر بأمان عالٍ","--ok"];
+ if(p>=75)return["جيد","--teal"];
+ if(p>=60)return["يحتاج اهتماماً","--mid"];
+ return["من الأسباب الرئيسية للتوتر","--crit"];
+}
+const barColor=p=>p>=75?"--teal":p>=60?"--mid":"--crit";
+
+const isSep=x=>x.w===5&&x.a<=3;
+function kidsBox(R){
+ const f=k=>R[k].rows.filter(x=>x.ax==="الأبناء وقت الخلاف"&&x.a<=3);
+ const fh=f("h"),fw=f("w");if(!fh.length&&!fw.length)return"";
+ return`<div class="money kidsbox"><h3>حساب الأبناء</h3>
+  ${fh.length?`<p><b>يذكر ${esc(nm("h"))}:</b> ${fh.map(x=>`«${x.t}»`).join("، ")}.</p>`:""}
+  ${fw.length?`<p><b>تذكر ${esc(nm("w"))}:</b> ${fw.map(x=>`«${x.t}»`).join("، ")}.</p>`:""}
+  <p class="muted">الخلاف العدائي أمام الأبناء، وجرّهم إلى صف أحد الوالدين، يهزّ شعورهم بالأمان حتى لو بقي الزوجان معاً. الهدف أن يعيش الأبناء في ظل الأب والأم معاً، لا كأنهم أيتام والوالدان أحياء.</p>
+  <ol class="agenda"><li>أوقفا أي نقاش حاد فور حضور الأبناء، وأكملاه وحدكما.</li><li>لا ذكر للطلاق ولا ذمّ لأحد الوالدين أمامهم.</li><li>بعد أي خلاف رأوه، طمئناهم معاً واجعلاهم يريان المصالحة.</li><li>وقّعا «ميثاق الأبناء» في بوابة الزوجين وسجّلا أسماءهم ليظهروا في تذكير وقت الخلاف.</li></ol></div>`}
+function moneyBox(R){
+ const f=k=>R[k].rows.filter(x=>x.ax==="الضيق المادي والأزمات"&&x.neg&&x.f>=3);
+ const fh=f("h"),fw=f("w");if(!fh.length&&!fw.length)return"";
+ return`<div class="money"><h3>نمط الخلاف وقت الضيق المادي</h3>
+  ${fh.length?`<p><b>يذكر ${esc(nm("h"))}:</b> ${fh.map(x=>`«${x.t}»`).join("، ")}.</p>`:""}
+  ${fw.length?`<p><b>تذكر ${esc(nm("w"))}:</b> ${fw.map(x=>`«${x.t}»`).join("، ")}.</p>`:""}
+  <p class="muted">تبيّن أبحاث نموذج الضغط الأسري (Conger وزملاؤه) أن الضيق المادي لا يهدم الزواج مباشرة، بل عبر القلق والانفعال والنقد المتبادل. والضغط نحو الطلاق في هذه المرحلة يكون غالباً تعبيراً عن الخوف وفقدان الأمان أكثر منه قراراً مدروساً، ويقابله عند الرجل شعور بأن قيمته ارتبطت بدخله.</p>
+  <ol class="agenda">
+   <li>جلسة مصارحة مالية واحدة بالأرقام: الدخل، والديون، والالتزامات، دون لوم.</li>
+   <li>خطة خروج مكتوبة لها مدة واضحة، مع ميزانية مؤقتة تُراجع أسبوعياً.</li>
+   <li>توقيع «ميثاق الضيق المادي» في بوابة الزوجين، وأوله: لا ذكر للطلاق أثناء الأزمة.</li>
+   <li>الزوجة تحتاج الطمأنينة والشفافية، والزوج يحتاج الدعم وفصل قيمته عن دخله. ليكتب كلٌّ منكما ما يحتاجه في «سجّل ملاحظة» تحت مجال «الضيق المادي».</li>
+   <li>إذا استمر التهديد بالطلاق أو استمرت الأزمة أكثر من 3 أشهر، فالأفضل مراجعة مستشار أسري ومستشار مالي.</li>
+  </ol></div>`}
+function getReason(key){return S.online?((typeof J!=="undefined"&&J.reasons)||{})[key]:(S.reasons||{})[key]}
+function reasonHTML(k,x){const key=k+"_"+x.id,writer=k==="h"?"w":"h",r=getReason(key);
+ const canWrite=!S.online||(typeof J!=="undefined"&&J.link&&J.link.role===writer);
+ return`<div class="reason">${r?`<p><b>سبب التقصير كما يراه ${esc(nm(writer))}:</b> <span data-notr>${esc(r)}</span></p>`:""}
+ ${canWrite?`<div class="rwrite"><label class="sub" for="rk-${key}">${r?"تعديل":"اكتب"} سبب التقصير (يكتبه ${esc(nm(writer))})</label><textarea id="rk-${key}" data-rk="${key}" rows="2" placeholder="ما سبب التقصير في هذه النقطة، وما الذي سيساعدني على تحسينها؟">${r?esc(r):""}</textarea><button data-rs="${key}">${r?"تحديث السبب":"حفظ السبب"}</button></div>`
+  :r?"":`<p class="sub">بانتظار أن يكتب ${esc(nm(writer))} سبب التقصير.</p>`}</div>`}
+function wireReasons(){app.querySelectorAll("[data-rs]").forEach(b=>b.onclick=async()=>{
+ const key=b.dataset.rs,t=app.querySelector(`[data-rk="${key}"]`).value.trim();if(!t)return toast("اكتب السبب أولاً");
+ b.disabled=true;const y=scrollY;
+ if(S.online){try{await col("reasons").doc(key).set({text:t,at:Date.now()});J.reasons[key]=t}catch(e){b.disabled=false;return toast("تعذّر الحفظ")}}
+ else{S.reasons=S.reasons||{};S.reasons[key]=t}
+ render();scrollTo(0,y);toast("حُفظ السبب")})}
+function report(){
+ const R={h:analyse("h"),w:analyse("w")};
+ const col=k=>{const r=R[k],[bt,bc]=band(r.index.pct,k==="h"),top=r.rows.filter(x=>x.x>4).slice(0,10);
+  const counts=CATS.map(c=>r.rows.filter(x=>cat(x.x)===c).length);
+  return`<section class="panel">
+   <span class="eyebrow">ما يشعر به ${esc(nm(k))}</span>
+   <div class="kpis"><div><span class="sub">${r.index.title}</span><div class="big" style="color:var(${bc})">${r.index.pct}%</div><span class="band" style="color:var(${bc})">${bt}</span></div>
+    <div><span class="sub">الرضا العام</span><div class="big">${r.overall}%</div></div></div>
+   <div class="axes">${r.axes.map(a=>`<div class="axis"><div class="row"><span>${a.title}</span><span style="font-variant-numeric:tabular-nums">${a.pct}%</span></div><div class="bar"><i style="width:${a.pct}%;background:var(${barColor(a.pct)})"></i></div></div>`).join("")}</div>
+   <div style="display:flex;flex-direction:column;gap:4px"><span class="sub">توزيع العبارات حسب قوة الأثر</span>
+    <div class="dist">${counts.map((n,i)=>n?`<i title="${CATS[i].name}: ${n}" style="width:${n/r.rows.length*100}%;background:var(${CATS[i].c})"></i>`:"").join("")}</div>
+    <span class="sub">${counts.map((n,i)=>n?`${CATS[i].name}: ${n}`:"").filter(Boolean).join(" · ")}</span></div>
+  </section>
+  <section class="panel">
+   <h3>أعلى ${top.length||""} احتياجات غير مشبعة لدى ${esc(nm(k))}</h3>
+   ${top.length?`<ol class="needs">${top.map(x=>{const c=cat(x.x);return`<li><div><div><span class="qn sm">${numOf(k,x.id)}</span>${x.t}</div><div class="sub">${x.ax} · يحدث: ${LEVEL_A[x.f-1]} · الأهمية ${x.i} · الوزن العالمي ${x.w} · درجة الألم ${x.p}</div>${x.w>3?reasonHTML(k,x):""}</div><div class="pts" style="color:var(${c.c})">${x.x}<small>${isSep(x)?"خطر انفصال":c.name}</small></div></li>`}).join("")}</ol>`
+    :`<p class="muted">لا توجد احتياجات مؤلمة، كل العبارات ضمن «ليست مشكلة».</p>`}
+  </section>`};
+ const gap=Math.abs(R.h.overall-R.w.overall);
+ const hors=k=>R[k].rows.filter(isSep);
+ const danger=[...hors("h").map(x=>[x,"h"]),...hors("w").map(x=>[x,"w"])];
+ const sepList=k=>{const l=hors(k);return`<div><h3 style="font-size:.95rem">يذكرها ${esc(nm(k))} (${l.length})</h3>${l.length?`<ol class="needs">${l.map(x=>`<li><div><div><span class="qn sm">${numOf(k,x.id)}</span>${x.t}</div><div class="sub">${x.ax} · يحدث: ${LEVEL_A[x.f-1]} · الأهمية ${x.i}</div></div><div class="pts" style="color:var(--crit)">${x.x}</div></li>`).join("")}</ol>`:`<p class="sub">لا توجد نقاط من هذا النوع.</p>`}</div>`};
+ app.innerHTML=`
+ <header class="hdr">${S.sample?`<span class="tag-sample">تقرير تجريبي ببيانات عشوائية للتوضيح فقط</span>`:""}
+  <span class="eyebrow">التقرير المشترك</span><h1>تقرير ${esc(nm("h"))} و${esc(nm("w"))}</h1>
+  <p class="muted">الرقم الكبير بجانب كل احتياج هو قوة الأثر: درجة الألم بعد مزج أهميتك الشخصية بالوزن العالمي للبند. وتحت كل نقطة قوتها العالمية 4 أو 5 يكتب الطرف المقصّر سبب تقصيره.</p></header>
+ <section class="panel sep"><h2>نقاط تؤدي إلى الانفصال ما لم يُعمل على حلها</h2>
+  <p class="muted">هذه بنود قوتها العالمية 5، وهي أقوى منبئات الانفصال في الأبحاث، وظهر فيها تقصير واضح. تُعالج قبل أي نقطة أخرى، حتى لو قلّت أهميتها في نظر صاحبها.</p>
+  ${danger.length?`<div class="two">${sepList("h")}${sepList("w")}</div><p class="note">اقتراح: حوّلا كل نقطة منها إلى ملاحظة في «بوابة الزوجين»، واتفقا على موعد لمراجعتها خلال أسبوعين.</p>`:`<p style="color:var(--ok)">لا توجد نقاط تهدد استقرار الزواج حالياً. حافظا على ذلك.</p>`}
+ </section>
+ ${moneyBox(R)}${kidsBox(R)}
+ <section class="panel">
+  <p>رضا ${esc(nm("h"))} عن زوجته <b>${R.h.overall}%</b>، ورضا ${esc(nm("w"))} عن زوجها <b>${R.w.overall}%</b>.
+  ${gap>=15?`الفجوة ${gap} نقطة، فأحد الطرفين يعاني أكثر بوضوح ويحتاج أن تكون احتياجاته أولوية.`:`الفجوة ${gap} نقاط، فمستوى الرضا متقارب.`}</p>
+  ${legendHTML}
+ </section>
+ <div class="cols"><div class="stack">${col("h")}</div><div class="stack">${col("w")}</div></div>
+ <section class="panel">
+  <p>اختارا معاً أعلى ثلاث نقاط لكل طرف للعمل عليها هذا الشهر، وتابعاها في «دفتر الأسبوع»، ثم أعيدا الاستبيان وقارنا.</p>
+  <p class="note">الاستبيان أداة للحوار وليس تشخيصاً نفسياً، والأوزان العالمية تقديرية مستندة إلى الأبحاث. إذا ظهرت مشكلات حرجة متعددة فالأفضل مراجعة مستشار أسري مختص.</p>
+  <div class="btns"><button class="primary" id="restart">${S.online?"العودة إلى البوابة":"استبيان جديد"}</button></div>
+ </section>`;
+ if(S.online&&typeof saveRound==="function")saveRound(R);
+ wireReasons();
+ $("#restart").onclick=()=>{const o=S.online;S=fresh();render();if(o)location.hash="#journal"};
+}
+render();
+</script>
+<script>
+/* ===== دفتر الأسبوع: مساحة مشتركة بين الزوجين ===== */
+const ART_URL="https://claude.ai/artifact/LoymkaJzKMivnK4aSiK99n";
+const ROLE={h:"الزوج",w:"الزوجة"};
+const FEELS=["الحزن","الجرح","الغضب","الإهمال","عدم التقدير","القلق","الإحراج","الوحدة"];
+const AXES=["الاحترام والتقدير","الغضب والخلاف","المودة والتعبير عن الحب","التواصل والحوار","الأسرة والوقت المشترك","الثقة والأمانة","المال والمستقبل","العلاقة الحميمة والهجر","الضيق المادي","الأبناء","أمر آخر"];
+const REPLY={
+ apology:{label:"أعتذر",status:"اعتذار",ph:"أعتذر عن ... وسأحرص على ..."},
+ working:{label:"سأعمل عليها",status:"قيد العمل",ph:"سأبدأ من هذا الأسبوع بأن ..."},
+ talk:{label:"لنتحدث عنها",status:"موعد للحوار",ph:"يناسبني أن نتحدث يوم ... الساعة ..."}};
+const STATUS={new:["بانتظار الرد","--accent"],apology:["اعتذار","--teal"],working:["قيد العمل","--mid"],talk:["موعد للحوار","--minor"],resolved:["تمّ الحل","--ok"]};
+const J={db:null,user:null,uid:null,link:null,meta:{},issues:[],checks:[],sv:{},rounds:[],reasons:{},pact:{},sub:"inbox",unsub:[],state:"loading",dirty:false,replying:null,filter:"all",justSent:false};
+const jv=document.getElementById("journalView");
+const other=r=>r==="h"?"w":"h";
+const jn=r=>(J.meta&&J.meta["name_"+r])||ROLE[r];
+const me=()=>J.link.role, them=()=>other(J.link.role);
+function weekKey(d=new Date()){const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-x.getDay());
+ return x.getFullYear()+"-"+String(x.getMonth()+1).padStart(2,"0")+"-"+String(x.getDate()).padStart(2,"0")}
+const fmtDate=t=>new Date(t).toLocaleDateString("ar-QA",{weekday:"long",day:"numeric",month:"long"});
+function toast(t){const el=document.getElementById("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,3200)}
+const wa=t=>"https://wa.me/?text="+encodeURIComponent(t);
+
+/* routing */
+function route(){const j=location.hash==="#journal";
+ document.getElementById("app").hidden=j;jv.hidden=!j;
+ document.getElementById("tab-survey").setAttribute("aria-selected",!j);
+ document.getElementById("tab-journal").setAttribute("aria-selected",j);}
+addEventListener("hashchange",route);route();
+
+async function jInit(){
+ jRender();
+ const t=setTimeout(()=>{if(J.state==="loading"){J.state="nodb";jRender()}},10000);
+ try{if(window.claude&&claude.use){J.db=await claude.use("db");J.user=await claude.use("user")}}catch(e){}
+ clearTimeout(t);
+ if(!J.db||!J.user){J.state="nodb";return jRender()}
+ try{J.uid=await J.user.id();
+  const s=await J.db.collection("data/users/"+J.uid).doc("link").get();
+  if(s.exists){J.link=s.data();return jConnect()}
+ }catch(e){}
+ J.state="setup";jRender();
+}
+function jErr(e){if(e&&e.code==="not_granted"){J.state="nodb"};jRender()}
+function jConnect(){
+ J.unsub.forEach(u=>u());J.unsub=[];J.state="ready";
+ const base="couples/"+J.link.code;
+ J.unsub.push(J.db.doc(base+"/meta/info").onSnapshot(s=>{J.meta=s.data()||{};jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/issues").orderBy("created","desc").onSnapshot(s=>{J.issues=s.docs.map(d=>({id:d.id,...d.data()}));jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/checkins").onSnapshot(s=>{J.checks=s.docs.map(d=>({id:d.id,...d.data()}));jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/survey").onSnapshot(s=>{J.sv={};s.docs.forEach(d=>J.sv[d.id]=d.data());jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/pact").onSnapshot(s=>{J.pact={};s.docs.forEach(d=>J.pact[d.id]=d.data());jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/reasons").onSnapshot(s=>{J.reasons={};s.docs.forEach(d=>J.reasons[d.id]=d.data().text)},jErr));
+ J.unsub.push(J.db.collection(base+"/rounds").onSnapshot(s=>{J.rounds=s.docs.map(d=>({id:d.id,...d.data()}));jRefresh()},jErr));
+ jRender();
+ if(location.hash!=="#journal"&&!S.online){const y=scrollY;render();scrollTo(0,y)}
+}
+const col=n=>J.db.collection("couples/"+J.link.code+"/"+n);
+
+/* counts that drive the notification badge */
+function counts(){
+ if(J.state!=="ready")return{reply:0,confirm:0,mine:0,resolvedWeek:0};
+ const wk=weekKey();
+ return{
+  reply:J.issues.filter(i=>i.from===them()&&i.status==="new").length,
+  confirm:J.issues.filter(i=>i.from===me()&&i.status!=="new"&&i.status!=="resolved").length,
+  mine:J.issues.filter(i=>i.from===me()&&i.status!=="resolved").length,
+  resolvedWeek:J.issues.filter(i=>i.status==="resolved"&&i.resolvedAt&&weekKey(i.resolvedAt)===wk).length};
+}
+const STANDALONE=!!window.WIFAQ_STANDALONE;
+function navLogin(){const b=document.getElementById("navLogin");if(!b)return;
+ if(J.state==="ready"&&J.link){b.textContent=dispId(J.link.code)+"/"+ROLE_PATH[J.link.role];b.classList.add("in");b.dataset.notr=""}
+ else{b.textContent="تسجيل الدخول";b.classList.remove("in");delete b.dataset.notr}}
+document.getElementById("navLogin").onclick=()=>{location.hash="#journal";route();if(J.state==="setup"){J.loginTab="login";jRender()}window.scrollTo(0,0)};
+function badge(){navLogin();const c=counts(),n=c.reply+c.confirm,b=document.getElementById("jbadge");b.hidden=!n;b.textContent=n;
+ const u=J.state==="ready"?J.issues.filter(i=>i.from===them()&&isUrgOpen(i)).length:0;document.title=u?`(عاجل ${u}) ميزان الوفاق الزوجي`:n?`(${n}) ميزان الوفاق الزوجي`:"ميزان الوفاق الزوجي"}
+function jRefresh(){badge();if(J.dirty||J.replying)return updateStats();jRender()}
+
+function jRender(){
+ badge();
+ if(J.state==="loading"){jv.innerHTML=`<section class="panel"><p class="muted">جارٍ تحميل الدفتر المشترك…</p></section>`;return}
+ if(J.state==="nodb"&&STANDALONE){jv.innerHTML=`<section class="panel"><h2>بوابة الزوجين</h2>
+  <p>هذه نسخة التطبيق المستقلة، وفيها الاستبيان والتقرير والطباعة وملف Excel، وتعمل دون إنترنت.</p>
+  <p class="muted">أما البوابة المشتركة (الدخول برقم الهاتف، والملاحظات، والطلبات العاجلة، ومسار التحسن) فتعمل في النسخة المتصلة على claude.ai، لأنها تنقل البيانات بين جهازي الزوجين.</p>
+  <div class="btns"><a class="wa" style="background:var(--teal)" href="${ART_URL}" target="_blank" rel="noopener">فتح النسخة المتصلة</a></div></section>`;return}
+ if(J.state==="nodb"){jv.innerHTML=`<section class="panel"><h2>دفتر الأسبوع</h2>
+  <p>يحتاج الدفتر المشترك إلى تسجيل الدخول في claude.ai، لأن الملاحظات تنتقل بين جهازي الزوجين.</p>
+  <p class="muted">سجّل الدخول ثم افتح الصفحة من جديد. إذا وصلك الرابط من شخص آخر، اطلب منه أن يشاركه معك بصلاحية «يمكنه التفاعل» أو أعلى.</p></section>`;return}
+ if(J.state==="setup")return setupView();
+ const c=counts();
+ jv.innerHTML=`
+ ${urgentBanner()}
+ <div class="btns"><button class="urgbtn" id="newUrgent">طلب معالجة طارئة قبل أن تحتدّ المشكلة</button></div>
+ <header style="display:flex;flex-direction:column;gap:6px">
+  <span class="eyebrow">بوابة الزوجين · أنت ${ROLE[me()]}</span>
+  ${J.meta.noKids?"":`<p class="kidsline">${kidsLine()}</p>`}
+  <div class="paths" data-notr>${["h","w"].map(r=>`<span class="path ${r===me()?"on":""}">${dispId(J.link.code)}<b>/${ROLE_PATH[r]}</b></span>`).join("")}</div>
+  <h1>${esc(jn("h"))} و${esc(jn("w"))}</h1>
+  <p class="muted">املأ استبيانك من جهازك، وسجّل ما يضايقك بهدوء فيصل إلى ${esc(jn(them()))} ليعمل عليه أو يعتذر. وفي نهاية كل أسبوع لقاء قصير لمراجعة ما تحقق.</p>
+ </header>
+ ${!J.meta[them()]?inviteCard():""}
+ <div class="stats" id="jstats">${statsHTML(c)}</div>
+ <div class="subtabs" id="jsub">
+  ${[["inbox","الوارد",c.reply+c.confirm],["compose","سجّل ملاحظة",0],["kids","حساب الأبناء",0],["pact","ميثاق الأزمة",0],["sv",me()==="h"?"بيانات الزوج واستبيانه":"بيانات الزوجة واستبيانها",0],["week","لقاء الأسبوع",0],["progress","مسار التحسن",0],["history","السجل",0]].map(([k,t,n])=>
+   `<button data-k="${k}" aria-pressed="${J.sub===k}">${t}${n?` <span class="badge">${n}</span>`:""}</button>`).join("")}
+ </div>
+ <div id="jpanel" style="display:flex;flex-direction:column;gap:14px"></div>
+  <p class="muted" style="font-size:.85rem">الحساب المشترك: <b style="direction:ltr;display:inline-block" data-notr>${dispId(J.link.code)}</b> · <button class="ghost" id="leave" style="padding:4px 10px;font-size:.85rem">تسجيل الخروج من الحساب المشترك</button></p>`;
+ jv.querySelectorAll("#jsub button").forEach(b=>b.onclick=()=>{J.sub=b.dataset.k;J.dirty=false;J.replying=null;J.justSent=false;jRender()});
+ document.getElementById("leave").onclick=leaveSpace;
+ const nu=document.getElementById("newUrgent");if(nu)nu.onclick=()=>{J.sub="compose";J.preUrgent=true;J.justSent=false;jRender()};
+ const gu=document.getElementById("goUrgent");if(gu)gu.onclick=()=>{J.sub="inbox";J.dirty=false;J.replying=null;jRender()};
+ const cp=document.getElementById("copyCode");if(cp)cp.onclick=()=>copy(inviteText());
+ const p=document.getElementById("jpanel");
+ p.oninput=()=>{J.dirty=true};
+ ({inbox:inboxView,compose:composeView,sv:svView,kids:kidsView,pact:pactView,week:weekView,progress:progressView,history:historyView})[J.sub](p);
+}
+function statsHTML(c){return`
+ <div class="stat"><b style="color:var(${c.reply?"--accent":"--ink"})">${c.reply}</b><span>ملاحظات من ${esc(jn(them()))} تنتظر ردّك</span></div>
+ <div class="stat"><b>${c.mine}</b><span>ملاحظاتك المفتوحة</span></div>
+ <div class="stat"><b style="color:var(--ok)">${c.resolvedWeek}</b><span>حُلّت هذا الأسبوع</span></div>`}
+function updateStats(){const s=document.getElementById("jstats");if(s)s.innerHTML=statsHTML(counts())}
+const ROLE_PATH={h:"husband",w:"wife"};
+const inviteText=()=>`انضم إليّ في بوابة الوفاق لنتابع علاقتنا ونقيس تحسّننا.\nالرابط: ${ART_URL}\nافتح «بوابة الزوجين» ثم «تسجيل الدخول»\n${/^p\d+$/.test(J.link.code)?"رقم الهاتف المشترك":"اسم المستخدم"}: ${dispId(J.link.code)}\nرمز الدخول: (سأخبرك به شفهياً)`;
+function inviteCard(){return`<section class="panel" style="border-color:var(--accent)">
+ <h3>ادعُ ${ROLE[them()]} للدخول إلى حسابكما</h3>
+ <p>يدخل ${ROLE[them()]} من «تسجيل الدخول» بنفس الرقم ورمز الدخول، فيرتبط بالمسار <b dir="ltr">${dispId(J.link.code)}/${ROLE_PATH[them()]}</b>. أخبره بالرمز شفهياً.</p>
+ <div><span class="code" data-notr dir="ltr">${dispId(J.link.code)}</span></div>
+ <div class="btns"><a class="wa" href="${wa(inviteText())}" target="_blank" rel="noopener">إرسال الدعوة عبر واتساب</a><button id="copyCode">نسخ نص الدعوة</button></div>
+ <p class="note">قبل ذلك شارك هذه الصفحة معه من زر Share أعلى الصفحة بصلاحية «يمكنه التفاعل»، فبدونها لن يستطيع فتحها.</p></section>`}
+async function copy(t){try{await navigator.clipboard.writeText(t);toast("تم النسخ")}catch(e){toast("لم يتم النسخ، حدّد النص وانسخه يدوياً")}}
+async function pinHash(u,p){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("wifaq:"+u+":"+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+const USER_RE=/^[a-z0-9][a-z0-9-]{2,23}$/;
+
+const CC=[["974","قطر"],["966","السعودية"],["971","الإمارات"],["965","الكويت"],["973","البحرين"],["968","عُمان"],["962","الأردن"],["20","مصر"],["964","العراق"],["963","سوريا"],["961","لبنان"],["970","فلسطين"],["212","المغرب"],["213","الجزائر"],["216","تونس"],["249","السودان"],["967","اليمن"],["90","تركيا"],["92","باكستان"],["91","الهند"],["44","بريطانيا"],["1","أمريكا وكندا"]];
+const dispId=c=>/^p\d+$/.test(c)?"+"+c.slice(1):c;
+const digits=v=>String(v||"").replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(/\D/g,"");
+function phoneId(cc,num){let n=digits(num).replace(/^0+/,"");if(n.startsWith(cc)&&n.length>cc.length+6)n=n.slice(cc.length);return n.length>=6&&n.length<=12?"p"+cc+n:null}
+
+/* login: the couple shares ONE phone number (or a username); inside it each partner has a sub-path: +974…/husband and +974…/wife */
+function setupView(){
+ const tab=J.loginTab||"login",isNew=tab==="new";
+ jv.innerHTML=`
+ <header class="hdr"><span class="eyebrow">بوابة الزوجين</span><h1>${isNew?"مستخدم جديد":"تسجيل الدخول"}</h1>
+ <p class="muted">اكتب رقم الهاتف المشترك واختر بجانبه: زوج أو زوجة. من يختار «زوج» يدخل إلى بيانات الزوج واستبيانه، ومن تختار «زوجة» تدخل إلى بيانات الزوجة واستبيانها.</p></header>
+ <section class="panel loginbox">
+  <div class="seg" role="tablist"><button data-t="login" aria-pressed="${!isNew}">تسجيل الدخول</button><button data-t="new" aria-pressed="${isNew}">مستخدم جديد</button></div>
+  <div class="field"><label for="lnum">رقم الهاتف المشترك</label>
+   <div class="loginrow">
+    <div class="phone" dir="ltr"><select id="lcc" aria-label="رمز الدولة">${CC.map(([c,n])=>`<option value="${c}">+${c} ${n}</option>`).join("")}</select><input id="lnum" inputmode="tel" autocomplete="tel-national" placeholder="5512 3456"></div>
+    <div class="rolebox" role="radiogroup" aria-label="الدور">
+     <input type="radio" name="lrole" id="lr-h" value="h" ${J.loginRole==="w"?"":"checked"}><label for="lr-h">زوج</label>
+     <input type="radio" name="lrole" id="lr-w" value="w" ${J.loginRole==="w"?"checked":""}><label for="lr-w">زوجة</label>
+    </div>
+   </div>
+   <span class="sub">رقم واحد يستخدمه الزوجان معاً، مثل رقم الزوج أو رقم البيت.</span></div>
+  <div class="field"><label for="lpin">${isNew?"اختر رمز دخول (4 إلى 6 أرقام)":"رمز الدخول"}</label><input id="lpin" inputmode="numeric" dir="ltr" maxlength="6" autocomplete="${isNew?"new-password":"current-password"}"></div>
+  <div class="field"><label for="lname">${isNew?"اسمك":"اسمك (عند أول دخول فقط)"}</label><input id="lname"></div>
+  ${isNew?"":`<details class="sub"><summary>لديكما حساب باسم مستخدم بدل الرقم؟</summary><div class="field" style="margin-top:6px"><label for="luser">اسم المستخدم</label><input id="luser" dir="ltr" placeholder="ahmad-sara"></div></details>`}
+  <button class="primary big" id="lgo">${isNew?"إنشاء الحساب والدخول":"دخول"}</button>
+  <p class="err" id="serr" hidden></p>
+  <p class="sub">${isNew?"بعد الإنشاء، يدخل الطرف الآخر من «تسجيل الدخول» بنفس الرقم والرمز ويختار دوره.":"أول مرة؟ اختر «مستخدم جديد» إذا لم يُنشأ حساب لهذا الرقم بعد."}</p>
+ </section>
+ <p class="note">رقم الهاتف معرّف للحساب المشترك فقط، ولا تُرسل إليه رسائل تحقق. الذي يحمي الحساب هو رمز الدخول، فلا تشاركه مع غير زوجك أو زوجتك.</p>`;
+ jv.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{J.loginRole=(jv.querySelector("input[name=lrole]:checked")||{}).value;J.loginTab=b.dataset.t;jRender()});
+ const err=t=>{const e=document.getElementById("serr");e.textContent=t;e.hidden=false};
+ const g=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
+ document.getElementById("lgo").onclick=async e=>{
+  const role=(jv.querySelector("input[name=lrole]:checked")||{}).value,user=g("luser").toLowerCase(),u=user||phoneId(g("lcc"),g("lnum")),pin=g("lpin"),name=g("lname");
+  if(!u)return err("اكتب رقم هاتف صحيحاً واختر رمز الدولة.");
+  if(!role)return err("اختر بجانب الرقم: زوج أو زوجة.");
+  if(isNew&&!/^\d{4,6}$/.test(pin))return err("رمز الدخول من 4 إلى 6 أرقام.");
+  if(!pin)return err("اكتب رمز الدخول.");
+  e.target.disabled=true;
+  try{const ref=J.db.doc(`couples/${u}/meta/info`),s=await ref.get(),d=s.exists?s.data():null;
+   if(isNew){
+    if(d){e.target.disabled=false;return err("يوجد حساب بهذا الرقم. اختر «تسجيل الدخول».")}
+    await ref.set({[role]:J.uid,["name_"+role]:name||ROLE[role],pin:await pinHash(u,pin),phone:"+"+u.slice(1),created:Date.now()});
+   }else{
+    if(!d){e.target.disabled=false;return err("لا يوجد حساب بهذا الرقم. اختر «مستخدم جديد» لإنشائه.")}
+    if(d.pin&&d.pin!==await pinHash(u,pin)){e.target.disabled=false;return err("رمز الدخول غير صحيح.")}
+    if(d[role]&&d[role]!==J.uid){e.target.disabled=false;return err(`دور ${role==="h"?"الزوج":"الزوجة"} في هذا الحساب مسجّل لشخص آخر. تأكد من اختيار الدور الصحيح.`)}
+    const upd={[role]:J.uid};if(name||!d["name_"+role])upd["name_"+role]=name||ROLE[role];
+    await ref.update(upd);
+   }
+   await linkTo(u,role)}catch(x){e.target.disabled=false;err("تعذّر الدخول. تأكد من الاتصال وأنك مسجّل الدخول في claude.ai.")}};
+}
+
+/* "my information": each partner's own profile inside his or her sub-path */
+const PROFILE=[["birth","سنة الميلاد","numeric","1990"],["job","المهنة","text",""],["mobile","رقم هاتفي الشخصي (اختياري)","tel",""],["married","سنة الزواج","numeric","2015"]];
+function profileCard(){
+ const r=me(),pf=(J.meta&&J.meta["profile_"+r])||{};
+ return`<section class="panel mecard"><div class="who"><h3>بيانات ${r==="h"?"الزوج":"الزوجة"}</h3><span class="path on" dir="ltr">${dispId(J.link.code)}<b>/${ROLE_PATH[r]}</b></span></div>
+  <div class="pgrid">
+   <div class="field"><label for="pf-name">الاسم</label><input id="pf-name" value="${esc(jn(r)===ROLE[r]?"":jn(r))}"></div>
+   ${PROFILE.map(([k,l,t,ph])=>`<div class="field"><label for="pf-${k}">${l}</label><input id="pf-${k}" inputmode="${t}" ${t!=="text"?'dir="ltr"':""} placeholder="${ph}" value="${esc(pf[k]||"")}"></div>`).join("")}
+  </div>
+  <div class="btns"><button class="primary" id="pfSave">حفظ بياناتي</button></div></section>`}
+function wireProfile(){const b=document.getElementById("pfSave");if(!b)return;b.onclick=async()=>{
+ const r=me(),pf={};PROFILE.forEach(([k])=>pf[k]=document.getElementById("pf-"+k).value.trim());const n=document.getElementById("pf-name").value.trim();
+ b.disabled=true;try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({["profile_"+r]:pf,...(n?{["name_"+r]:n}:{})});J.dirty=false;toast("حُفظت بياناتك")}catch(e){b.disabled=false;toast("تعذّر الحفظ")}}}
+
+/* ===== online survey inside the couple account ===== */
+let svT;
+function onlineSave(k){clearTimeout(svT);svT=setTimeout(()=>{if(!J.link||J.link.role!==k)return;
+ col("survey").doc(k).set({ans:S.ans[k],done:false,at:Date.now()}).catch(()=>toast("تعذّر حفظ الإجابة، تحقق من الاتصال"))},900)}
+async function onlineDone(k){clearTimeout(svT);
+ if(!J.link){toast("تعذّر الحفظ، افتح دفتر الأسبوع وسجّل الدخول");return}
+ try{await col("survey").doc(k).set({ans:S.ans[k],done:true,at:Date.now()})}catch(e){toast("تعذّر الحفظ، حاول مرة أخرى");return}
+ S=fresh();save();J.sub="sv";location.hash="#journal";jRender();toast("حُفظت إجاباتك في مسارك")}
+function startOnline(){const r=me(),d=J.sv[r];S=fresh();S.online=true;S.noKids=!!J.meta.noKids;S.names={h:jn("h"),w:jn("w")};S.ans[r]=(d&&d.ans)||{};
+ S.stage="fill-"+r;S.page=0;location.hash="#survey";render()}
+function showJointReport(){S=fresh();S.online=true;S.noKids=!!J.meta.noKids;S.names={h:jn("h"),w:jn("w")};S.ans={h:J.sv.h.ans,w:J.sv.w.ans};S.stage="report";location.hash="#survey";render()}
+function saveRound(R){if(!J.link||!J.sv.h||!J.sv.w)return;const id="r"+Math.max(J.sv.h.at,J.sv.w.at);
+ if(J.rounds.some(x=>x.id===id))return;
+ const pack=r=>({overall:r.overall,index:r.index.pct,ax:Object.fromEntries(r.axes.map(a=>[a.title.replace(/\W/g,"_"),a.pct]))});
+ col("rounds").doc(id).set({at:Math.max(J.sv.h.at,J.sv.w.at),h:pack(R.h),w:pack(R.w)}).catch(()=>{})}
+function svStatus(r){const d=J.sv[r],n=d&&d.ans?Object.values(d.ans).filter(v=>v[0]&&v[1]).length:0,t=FORMS[r].reduce((a,x)=>a+x.items.length,0);
+ return d&&d.done?["أكمل الاستبيان","--ok",t,t]:n?[`أجاب عن ${n} من ${t}`,"--mid",n,t]:["لم يبدأ بعد","--muted",0,t]}
+function svView(p){
+ const both=J.sv.h&&J.sv.h.done&&J.sv.w&&J.sv.w.done;
+ const card=r=>{const[st,c,n,t]=svStatus(r);return`<section class="panel">
+  <span class="eyebrow" dir="ltr" style="text-align:start">${dispId(J.link.code)}/${ROLE_PATH[r]}</span>
+  <h3>${esc(jn(r))}${r===me()?" (أنت)":""}</h3>
+  <div class="bar"><i style="width:${n/t*100}%;background:var(${c==="--muted"?"--line":c})"></i></div>
+  <p style="color:var(${c})">${st}</p>
+  ${r===me()?`<div class="btns"><button class="primary" id="svGo">${J.sv[r]&&J.sv[r].done?"مراجعة إجاباتي":n?"أكمل استبياني":"ابدأ استبياني"}</button></div>`:`<p class="sub">لا تظهر إجاباته لك قبل اكتمال الاستبيانين.</p>`}</section>`};
+ p.innerHTML=`${profileCard()}<div class="two">${card(me())}${card(them())}</div>
+  <section class="panel"><h3>التقرير المشترك</h3>
+   ${both?`<p>أكمل كلاكما الاستبيان. يُحفظ التقرير تلقائياً كجولة في «مسار التحسن» لتقارنا به لاحقاً.</p>
+    <div class="btns"><button class="primary" id="svRep">عرض التقرير المشترك</button><button id="svNew">بدء جولة جديدة</button></div>
+    <p class="sub">الجولة الجديدة تمسح الإجابات الحالية من المسارين، وتبقى نتائجها محفوظة في مسار التحسن. يُنصح بها كل شهر.</p>`
+   :`<p class="muted">يظهر التقرير هنا عندما يكمل كل منكما استبيانه من جهازه.</p>`}</section>`;
+ document.getElementById("svGo").onclick=startOnline;wireProfile();
+ const rep=document.getElementById("svRep");if(rep)rep.onclick=showJointReport;
+ const nw=document.getElementById("svNew");if(nw)nw.onclick=async()=>{
+  if(!nw.dataset.sure){nw.dataset.sure=1;nw.textContent="اضغط مرة أخرى للتأكيد";return}
+  const R={h:analyseFrom("h",J.sv.h.ans),w:analyseFrom("w",J.sv.w.ans)};saveRound(R);
+  try{await col("survey").doc("h").set({ans:{},done:false,at:Date.now()});await col("survey").doc("w").set({ans:{},done:false,at:Date.now()});for(const key of Object.keys(J.reasons))await col("reasons").doc(key).delete();toast("بدأت جولة جديدة")}catch(e){toast("تعذّر بدء الجولة")}};
+}
+function analyseFrom(k,ans){const keep=S.ans[k];S.ans[k]=ans||{};const r=analyse(k);S.ans[k]=keep;return r}
+
+/* ===== improvement tracking ===== */
+function lineChart(labels,series,max){
+ if(labels.length<2)return"";
+ const W=600,H=210,L=34,R=16,T=14,B=30,x=i=>L+i*(W-L-R)/(labels.length-1),y=v=>T+(max-v)*(H-T-B)/max;
+ const ticks=[0,.25,.5,.75,1].map(f=>Math.round(f*max));
+ return`<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img">
+  ${ticks.map(v=>`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join("")}
+  ${labels.map((l,i)=>`<text x="${x(i)}" y="${H-10}" text-anchor="middle">${l}</text>`).join("")}
+  ${series.map(s=>{const pts=s.values.map((v,i)=>v==null?null:[x(i),y(v)]).filter(Boolean);
+   return`<polyline fill="none" stroke="var(${s.c})" stroke-width="2.5" ${s.dash?'stroke-dasharray="5 4"':""} points="${pts.map(q=>q.join(",")).join(" ")}"/>${pts.map(q=>`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="var(${s.c})"/>`).join("")}`}).join("")}
+  </svg></div><div class="legend">${series.map(s=>`<span><i class="dot" style="background:var(${s.c})"></i>${s.name}</span>`).join("")}</div>`}
+const dl=(a,b)=>{if(a==null||b==null)return"";const d=b-a;return d?`<span style="color:var(${d>0?"--ok":"--crit"})">${d>0?"▲ +":"▼ "}${d}</span>`:`<span class="muted">=</span>`};
+function progressView(p){
+ const rounds=[...J.rounds].sort((a,b)=>a.at-b.at),f=rounds[0],l=rounds[rounds.length-1];
+ const short=t=>new Date(t).toLocaleDateString("ar-QA",{day:"numeric",month:"numeric"});
+ const weeks=[...new Set(J.checks.map(c=>c.week))].sort().slice(-10);
+ const wv=r=>weeks.map(w=>{const k=J.checks.find(q=>q.id===w+"_"+r);return k?k.score:null});
+ const wk8=[...Array(8)].map((_,i)=>{const d=new Date();d.setDate(d.getDate()-7*(7-i));return weekKey(d)});
+ const raised=wk8.map(w=>J.issues.filter(i=>i.week===w).length),solved=wk8.map(w=>J.issues.filter(i=>i.resolvedAt&&weekKey(i.resolvedAt)===w).length);
+ const res=J.issues.filter(i=>i.status==="resolved"),rate=J.issues.length?Math.round(res.length/J.issues.length*100):null;
+ const days=res.length?Math.round(res.reduce((a,i)=>a+(i.resolvedAt-i.created),0)/res.length/864e5*10)/10:null;
+ const axisTitles=FORMS.h.map(a=>a.title),av=(r,t)=>r.ax?r.ax[t.replace(/\W/g,"_")]:null;
+ p.innerHTML=`
+ <div class="stats">
+  <div class="stat"><b>${rounds.length}</b><span>جولات استبيان محفوظة</span></div>
+  <div class="stat"><b style="color:var(--ok)">${rate==null?"—":rate+"%"}</b><span>نسبة الملاحظات المحلولة</span></div>
+  <div class="stat"><b>${days==null?"—":days}</b><span>متوسط الأيام حتى الحل</span></div>
+ </div>
+ <section class="panel"><h3>تطور نتائج الاستبيان</h3>
+  ${rounds.length?`<div class="tblwrap"><table class="tbl"><thead><tr><th>الجولة</th><th>رضا ${esc(jn("h"))}</th><th>رضا ${esc(jn("w"))}</th><th>احترام الزوج</th><th>أمان الزوجة</th></tr></thead><tbody>
+   ${rounds.map((r,i)=>{const pv=rounds[i-1];return`<tr><td>${fmtDate(r.at)}</td><td>${r.h.overall}% ${pv?dl(pv.h.overall,r.h.overall):""}</td><td>${r.w.overall}% ${pv?dl(pv.w.overall,r.w.overall):""}</td><td>${r.h.index}% ${pv?dl(pv.h.index,r.h.index):""}</td><td>${r.w.index}% ${pv?dl(pv.w.index,r.w.index):""}</td></tr>`}).join("")}
+   </tbody></table></div>
+   ${lineChart(rounds.map(r=>short(r.at)),[{name:"رضا "+jn("h"),c:"--teal",values:rounds.map(r=>r.h.overall)},{name:"رضا "+jn("w"),c:"--accent",values:rounds.map(r=>r.w.overall)},{name:"احترام الزوج",c:"--teal",dash:1,values:rounds.map(r=>r.h.index)},{name:"أمان الزوجة",c:"--accent",dash:1,values:rounds.map(r=>r.w.index)}],100)}
+   ${rounds.length>1?`<h3>التغير في كل محور منذ الجولة الأولى</h3><div class="tblwrap"><table class="tbl"><thead><tr><th>المحور</th><th>${esc(jn("h"))}</th><th>${esc(jn("w"))}</th></tr></thead><tbody>
+    ${FORMS.h.map((a,i)=>{const th=a.title,tw=FORMS.w[i].title,x=av(l.h,th),y=av(l.w,tw);return x==null&&y==null?"":`<tr><td>${i===0?"الاحترام والأمان":th}</td><td>${x??"—"}% ${dl(av(f.h,th),x)}</td><td>${y??"—"}% ${dl(av(f.w,tw),y)}</td></tr>`}).join("")}</tbody></table></div>`:`<p class="sub">بعد الجولة الثانية تظهر مقارنة كل محور بالجولة الأولى.</p>`}`
+  :`<p class="muted">لا توجد جولات بعد. عندما يكمل كلاكما الاستبيان من تبويب «الاستبيان» ويُعرض التقرير المشترك، تُحفظ أول جولة هنا. أعيداه كل شهر لتريا التحسن.</p>`}
+ </section>
+ <section class="panel"><h3>تقييم الأسابيع</h3>
+  ${weeks.length>1?lineChart(weeks.map(w=>w.slice(5).replace("-","/")),[{name:jn("h"),c:"--teal",values:wv("h")},{name:jn("w"),c:"--accent",values:wv("w")}],10):`<p class="muted">يظهر الرسم بعد أسبوعين من تقييم «لقاء الأسبوع».</p>`}
+ </section>
+ <section class="panel"><h3>الملاحظات خلال 8 أسابيع</h3>
+  ${lineChart(wk8.map(w=>w.slice(5).replace("-","/")),[{name:"سُجّلت",c:"--big",values:raised},{name:"حُلّت",c:"--ok",values:solved}],Math.max(4,...raised,...solved))}
+  <p class="sub">التحسن الحقيقي: خط «حُلّت» يقترب من خط «سُجّلت» أو يتجاوزه، وخط التسجيل ينخفض مع الوقت.</p>
+ </section>`;
+}
+
+async function linkTo(code,role){J.link={code,role};
+ await J.db.collection("data/users/"+J.uid).doc("link").set({code,role});
+ J.sub="sv";jConnect();toast(`مرحباً، دخلت إلى بيانات ${role==="h"?"الزوج":"الزوجة"}`)}
+async function leaveSpace(){
+ const b=document.getElementById("leave");
+ if(!b.dataset.sure){b.dataset.sure=1;b.textContent="اضغط مرة أخرى للتأكيد";return}
+ try{await J.db.collection("data/users/"+J.uid).doc("link").delete()}catch(e){}
+ J.unsub.forEach(u=>u());J.unsub=[];J.link=null;J.state="setup";S=fresh();save();render();jRender()}
+
+/* one concern card */
+function issueCard(i,mode){
+ const [st,sc]=STATUS[i.status]||STATUS.new, fromMe=i.from===me();
+ const r=i.reply;
+ return`<article class="issue ${mode==="reply"||mode==="confirm"?"hot":""} ${isUrgOpen(i)?"isurg":""}" data-id="${i.id}">
+  <div class="meta"><span class="pill" style="color:var(${sc})">${st}</span><span>${fromMe?"منك":"من "+esc(jn(i.from))}</span><span>${esc(i.axis)}</span><span class="sev" title="الشدة ${i.sev} من 5">${"●".repeat(i.sev)}${"○".repeat(5-i.sev)}</span><span>${fmtDate(i.created)}</span>${i.kids?`<span class="pill" style="color:var(--crit)">أمام الأبناء</span>`:""}${i.urgent?`<span class="pill urg">عاجل · نتحدث ${URG[i.urgent]||""}${i.status==="new"?" · "+dueText(i):""}</span>`:""}</div>
+  <p>شعرتُ بـ<b>${esc(i.feel)}</b> عندما <span data-notr>${esc(i.when)}</span>${i.need?`، وأحتاج <span data-notr>${esc(i.need)}</span>`:""}.</p>
+  ${r?`<div class="reply"><b>${esc(jn(i.from===me()?them():me()))} · ${REPLY[r.type].label}:</b> <span data-notr>${esc(r.text)}</span></div>`:""}
+  ${i.prevReply?`<p class="sub">ردّ سابق لم يكن كافياً: <span data-notr>${esc(i.prevReply.text)}</span></p>`:""}
+  ${mode==="reply"?`<div class="btns">${Object.entries(REPLY).map(([k,v])=>`<button data-act="open" data-type="${k}">${v.label}</button>`).join("")}</div>
+    <div class="rbox" hidden style="display:flex;flex-direction:column;gap:8px"><textarea aria-label="ردّك"></textarea>
+    <div class="btns"><button class="primary" data-act="send">إرسال الرد</button><button class="ghost" data-act="cancel">إلغاء</button></div></div>`:""}
+  ${mode==="confirm"?`<div class="btns"><button class="primary" data-act="resolve">تحسّن الأمر، شكراً</button><button data-act="reopen">ما زال يضايقني</button></div>`:""}
+ </article>`}
+function wireCards(p){
+ p.querySelectorAll(".issue").forEach(card=>{const id=card.dataset.id;let type=null;
+  card.onclick=async e=>{const a=e.target.dataset.act;if(!a)return;const ref=col("issues").doc(id);
+   if(a==="open"){type=e.target.dataset.type;J.replying=id;const box=card.querySelector(".rbox");box.hidden=false;
+    const ta=box.querySelector("textarea");ta.placeholder=REPLY[type].ph;ta.focus();
+    card.querySelectorAll('[data-act="open"]').forEach(b=>b.classList.toggle("primary",b===e.target));}
+   if(a==="cancel"){J.replying=null;J.dirty=false;jRender()}
+   if(a==="send"){const t=card.querySelector("textarea").value.trim();if(!t)return toast("اكتب ردّك أولاً");
+    e.target.disabled=true;
+    try{await ref.update({status:type,reply:{type,text:t,at:Date.now()}});J.replying=null;J.dirty=false;toast("وصل ردّك");jRender()}
+    catch(x){e.target.disabled=false;toast("تعذّر الإرسال، حاول مرة أخرى")}}
+   if(a==="resolve"){try{await ref.update({status:"resolved",resolvedAt:Date.now()});toast("رائع، أُغلقت الملاحظة")}catch(x){toast("تعذّر الحفظ")}}
+   if(a==="reopen"){const it=J.issues.find(x=>x.id===id);try{await ref.update({status:"new",prevReply:it.reply||null,reply:null});toast(`أُعيدت إلى ${jn(them())}`)}catch(x){toast("تعذّر الحفظ")}}
+  }});
+}
+function inboxView(p){
+ const need=J.issues.filter(i=>i.from===them()&&i.status==="new").sort(byImportance);
+ const confirm=J.issues.filter(i=>i.from===me()&&i.status!=="new"&&i.status!=="resolved").sort(byImportance);
+ const waiting=J.issues.filter(i=>i.from===them()&&i.status!=="new"&&i.status!=="resolved").sort(byImportance);
+ p.innerHTML=(need.length||confirm.length||waiting.length)?`
+  ${need.length?`<h3>تنتظر ردّك</h3>${need.map(i=>issueCard(i,"reply")).join("")}`:""}
+  ${confirm.length?`<h3>ردّ ${esc(jn(them()))} على ملاحظاتك</h3>${confirm.map(i=>issueCard(i,"confirm")).join("")}`:""}
+  ${waiting.length?`<h3>تمّ الرد عليها وتنتظر تأكيد ${esc(jn(them()))}</h3>${waiting.map(i=>issueCard(i)).join("")}`:""}`
+ :`<section class="panel"><h3>لا شيء ينتظرك الآن</h3><p class="muted">عندما يسجّل ${esc(jn(them()))} ملاحظة، أو يرد على ملاحظة منك، ستظهر هنا مع رقم على تبويب «دفتر الأسبوع».</p>
+   <div class="btns"><button class="primary" id="goCompose">سجّل ملاحظة</button><button id="goWeek">لقاء الأسبوع</button></div></section>`;
+ const gc=document.getElementById("goCompose");if(gc){gc.onclick=()=>{J.sub="compose";jRender()};document.getElementById("goWeek").onclick=()=>{J.sub="week";jRender()}}
+ wireCards(p);
+}
+const URG={hour:"خلال ساعة",tonight:"الليلة",tomorrow:"غداً"};
+function urgDue(k,t=Date.now()){const d=new Date(t);
+ if(k==="hour")return t+36e5;
+ if(k==="tonight"){d.setHours(21,0,0,0);return d.getTime()>t+36e5?d.getTime():t+2*36e5}
+ d.setDate(d.getDate()+1);d.setHours(12,0,0,0);return d.getTime()}
+const isUrgOpen=i=>i.urgent&&i.status==="new";
+const byImportance=(a,b)=>(isUrgOpen(b)?1:0)-(isUrgOpen(a)?1:0)||(b.kids?1:0)-(a.kids?1:0)||b.sev-a.sev||b.created-a.created;
+function dueText(i){const m=Math.round((i.due-Date.now())/6e4);
+ if(m<=0)return`<b style="color:var(--crit)">تأخر الرد</b>`;
+ return m<60?`متبقٍ ${m} دقيقة`:`متبقٍ ${Math.round(m/60)} ساعة`}
+function urgentBanner(){const u=J.issues.filter(i=>i.from===them()&&isUrgOpen(i));if(!u.length)return"";
+ return`<section class="urgent"><div><b>طلب معالجة عاجلة من ${esc(jn(them()))}</b> · قبل أن تحتدّ المشكلة</div>
+  ${u.map(i=>`<p>شعرتُ بـ${esc(i.feel)} عندما <span data-notr>${esc(i.when)}</span> · نتحدث ${URG[i.urgent]||""} · ${dueText(i)}</p>`).join("")}
+  <div class="btns"><button class="primary" id="goUrgent">الرد الآن</button></div></section>`}
+function composeView(p){
+ if(J.justSent){p.innerHTML=`<section class="panel"><h3>سُجّلت ملاحظتك ووصلت إلى ${esc(jn(them()))}</h3>
+  <p class="muted">ستظهر له في «الوارد» عند فتح الصفحة. يمكنك تنبيهه برسالة لطيفة الآن:</p>
+  <div class="btns"><a class="wa" target="_blank" rel="noopener" href="${wa(J.lastUrgent?`طلب عاجل: أحتاج أن نتحدث ${URG[J.lastUrgent]} بهدوء قبل أن تكبر المشكلة. التفاصيل في بوابة الزوجين: ${ART_URL}`:`سجّلتُ ملاحظة في دفتر الوفاق، وأتمنى أن تقرأها حين يناسبك. ${ART_URL}`)}">${J.lastUrgent?"إرسال تنبيه عاجل عبر واتساب":"تنبيه عبر واتساب"}</a>
+  <button id="again">تسجيل ملاحظة أخرى</button></div></section>`;
+  document.getElementById("again").onclick=()=>{J.justSent=false;jRender()};return}
+ p.innerHTML=`<section class="panel">
+  <h3>سجّل ما يضايقك</h3>
+  <p class="muted">اكتب عن الموقف وشعورك، لا عن شخصية ${esc(jn(them()))}. هذه الصيغة تقلّل الدفاعية وتسهّل الاعتذار.</p>
+  <div class="field"><label for="cAxis">المجال</label><select id="cAxis">${AXES.map(a=>`<option>${a}</option>`).join("")}</select></div>
+  <div class="field"><label for="cWhen">عندما…</label><textarea id="cWhen" placeholder="رفعتَ صوتك أمام الأولاد مساء الثلاثاء"></textarea></div>
+  <div class="field"><span>شعرتُ بـ…</span><div class="chips">${FEELS.map((f,i)=>`<input type="radio" name="cFeel" id="cf${i}" value="${f}"><label for="cf${i}">${f}</label>`).join("")}</div></div>
+  <div class="field"><label for="cNeed">وأحتاج…</label><textarea id="cNeed" placeholder="أن نؤجل النقاش حتى نكون وحدنا"></textarea></div>
+  <div class="urgbox"><label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="checkbox" id="cUrg" ${J.preUrgent?"checked":""}> معالجة طارئة: أريد حلّها قبل أن تحتدّ المشكلة</label>
+   <div class="chips" id="cUrgWhen" ${J.preUrgent?"":"hidden"}>${Object.entries(URG).map(([k,t],i)=>`<input type="radio" name="cWhenTalk" id="cu${k}" value="${k}" ${i===0?"checked":""}><label for="cu${k}">نتحدث ${t}</label>`).join("")}</div>
+   <p class="sub">الطلب العاجل يظهر لـ${esc(jn(them()))} في أعلى البوابة بلون أحمر مع وقت متبقٍّ للرد.</p></div>
+  <label class="sub" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="cKids"> حدث هذا أمام الأبناء</label>
+  <div class="field"><span>مدى تأثيره عليّ</span><div class="chips">${[1,2,3,4,5].map(n=>`<input type="radio" name="cSev" id="cs${n}" value="${n}" ${n===3?"checked":""}><label for="cs${n}">${n} · ${["بسيط","خفيف","متوسط","كبير","شديد"][n-1]}</label>`).join("")}</div></div>
+  <div class="preview" id="cPrev">ستظهر الجملة هنا أثناء الكتابة.</div>
+  <p class="err" id="cErr" hidden></p>
+  <div class="btns"><button class="primary" id="cSend">إرسال إلى ${esc(jn(them()))}</button></div></section>`;
+ const g=id=>document.getElementById(id),val=n=>(p.querySelector(`input[name=${n}]:checked`)||{}).value;
+ const prev=()=>{const f=val("cFeel"),w=g("cWhen").value.trim(),n=g("cNeed").value.trim();
+  g("cPrev").textContent=(f||w)?`شعرتُ بـ${f||"…"} عندما ${w||"…"}${n?`، وأحتاج ${n}`:""}.`:"ستظهر الجملة هنا أثناء الكتابة."};
+ p.addEventListener("input",prev);p.addEventListener("change",prev);
+ g("cUrg").onchange=()=>{g("cUrgWhen").hidden=!g("cUrg").checked};
+ g("cSend").onclick=async e=>{const f=val("cFeel"),w=g("cWhen").value.trim();
+  if(!w||!f){g("cErr").textContent="اكتب الموقف واختر شعورك قبل الإرسال.";g("cErr").hidden=false;return}
+  e.target.disabled=true;
+  try{await col("issues").add({from:me(),axis:g("cAxis").value,when:w,feel:f,need:g("cNeed").value.trim(),kids:g("cKids").checked,...(g("cUrg").checked?{urgent:val("cWhenTalk")||"hour",due:urgDue(val("cWhenTalk")||"hour")}:{}),sev:+val("cSev"),status:"new",created:Date.now(),week:weekKey()});
+   J.lastUrgent=g("cUrg").checked?(val("cWhenTalk")||"hour"):null;J.preUrgent=false;J.dirty=false;J.justSent=true;jRender()}catch(x){e.target.disabled=false;g("cErr").textContent="تعذّر الإرسال. تحقق من الاتصال وحاول مرة أخرى.";g("cErr").hidden=false}};
+}
+function weekView(p){
+ const wk=weekKey(),mine=J.checks.find(c=>c.id===wk+"_"+me()),theirs=J.checks.find(c=>c.id===wk+"_"+them());
+ const open=J.issues.filter(i=>i.status!=="resolved").sort((a,b)=>b.sev-a.sev);
+ const weekIssues=J.issues.filter(i=>i.week===wk);
+ let form="";
+ if(!mine)form=`<section class="panel"><h3>تقييمك لهذا الأسبوع</h3>
+  <p class="muted">أسبوع يبدأ ${fmtDate(new Date(wk+"T00:00"))}. لن ترى إجابة ${esc(jn(them()))} إلا بعد أن تُرسل إجابتك.</p>
+  <div class="field"><span>كيف كان شعورك بعلاقتكما هذا الأسبوع؟ (1 سيئ جداً · 10 ممتاز)</span>
+   <div class="score10" dir="ltr">${[...Array(10)].map((_,i)=>`<input type="radio" name="wScore" id="ws${i+1}" value="${i+1}"><label for="ws${i+1}">${i+1}</label>`).join("")}</div></div>
+  <div class="field"><label for="wThanks">شيء أقدّره في ${esc(jn(them()))} هذا الأسبوع</label><textarea id="wThanks" placeholder="أنه ساعدني مع الأولاد يوم كنت متعبة"></textarea></div>
+  <div class="field"><label for="wWish">شيء واحد أتمنى أن نفعله معاً الأسبوع القادم</label><textarea id="wWish" placeholder="عشاء خارج البيت مساء الجمعة"></textarea></div>
+  <p class="err" id="wErr" hidden></p>
+  <div class="btns"><button class="primary" id="wSend">حفظ تقييم الأسبوع</button></div></section>`;
+ const card=(c,r)=>`<section class="panel"><span class="eyebrow">${esc(jn(r))}</span><div class="big">${c.score}<span class="muted" style="font-size:1rem"> / 10</span></div>
+  ${c.thanks?`<p><b>أقدّر فيك:</b> <span data-notr>${esc(c.thanks)}</span></p>`:""}${c.wish?`<p><b>أتمنى أن:</b> <span data-notr>${esc(c.wish)}</span></p>`:""}</section>`;
+ const both=mine&&theirs;
+ p.innerHTML=`${form}
+  ${mine&&!theirs?`<section class="panel"><h3>حُفظ تقييمك</h3><p class="muted">بانتظار ${esc(jn(them()))}. ستظهر الإجابتان معاً عندما يُكمل تقييمه.</p></section>`:""}
+  ${both?`<div class="two">${card(mine,me())}${card(theirs,them())}</div>`:""}
+  <section class="panel"><h3>جدول لقاء الأسبوع</h3><p class="muted">اجلسا ربع ساعة بلا هواتف، واتبعا هذا الترتيب.</p>
+   <ol class="agenda">
+    <li>ابدآ بالامتنان: يقرأ كلٌّ منكما ما يقدّره في الآخر.</li>
+    <li>هذا الأسبوع سُجّلت ${weekIssues.length} ملاحظة، وحُلّت ${counts().resolvedWeek}.</li>
+    <li>${open.length?`ناقشا الملاحظات المفتوحة بحسب شدّتها: ${open.slice(0,3).map(i=>`«<span data-notr>${esc(i.when)}</span>»`).join("، ")}${open.length>3?` و${open.length-3} غيرها`:""}.`:"لا توجد ملاحظات مفتوحة. أحسنتما."}</li>
+    <li>اتفقا على أمنية واحدة للأسبوع القادم${both&&(mine.wish||theirs.wish)?`: ${[mine.wish,theirs.wish].filter(Boolean).map(w=>`«${esc(w)}»`).join(" أو ")}`:""}.</li>
+   </ol></section>
+  <section class="panel"><h3>مسار الأسابيع</h3>${trendChart()}</section>`;
+ const s=document.getElementById("wSend");
+ if(s)s.onclick=async()=>{const sc=(p.querySelector("input[name=wScore]:checked")||{}).value;
+  if(!sc){const e=document.getElementById("wErr");e.textContent="اختر رقماً من 1 إلى 10.";e.hidden=false;return}
+  s.disabled=true;
+  try{await col("checkins").doc(wk+"_"+me()).set({week:wk,role:me(),score:+sc,thanks:document.getElementById("wThanks").value.trim(),wish:document.getElementById("wWish").value.trim(),at:Date.now()});
+   J.dirty=false;toast("حُفظ تقييم الأسبوع");jRender()}catch(x){s.disabled=false;toast("تعذّر الحفظ")}};
+}
+function trendChart(){
+ const weeks=[...new Set(J.checks.map(c=>c.week))].sort().slice(-8);
+ if(weeks.length<2)return`<p class="muted">يظهر الرسم بعد أسبوعين من التقييم. كل أسبوع تقيّمانه يضيف نقطة لكل منكما.</p>`;
+ const W=600,H=220,L=34,R=16,T=14,B=34,x=i=>L+i*(W-L-R)/(weeks.length-1),y=v=>T+(10-v)*(H-T-B)/10;
+ const line=(r,c)=>{const pts=weeks.map((w,i)=>{const k=J.checks.find(q=>q.id===w+"_"+r);return k?[x(i),y(k.score),k.score]:null}).filter(Boolean);
+  return`<polyline fill="none" stroke="var(${c})" stroke-width="2.5" points="${pts.map(p=>p[0]+","+p[1]).join(" ")}"/>${pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(${c})"/>`).join("")}`};
+ return`<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="تقييم الأسابيع">
+  ${[0,2,4,6,8,10].map(v=>`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`).join("")}
+  ${weeks.map((w,i)=>`<text x="${x(i)}" y="${H-12}" text-anchor="middle">${w.slice(5).replace("-","/")}</text>`).join("")}
+  ${line("h","--teal")}${line("w","--accent")}</svg></div>
+  <div class="legend"><span><i class="dot" style="background:var(--teal)"></i>${esc(jn("h"))}</span><span><i class="dot" style="background:var(--accent)"></i>${esc(jn("w"))}</span></div>`;
+}
+const PACT=["لا نذكر كلمة الطلاق أو الانفصال أثناء الأزمات المالية مهما اشتد الخلاف.","نتصارح بوضعنا المالي كاملاً: الدخل والديون والالتزامات.","نضع معاً ميزانية مؤقتة للأزمة ونراجعها كل أسبوع.","الأزمة مسؤوليتنا معاً، ولا يلوم أحدنا الآخر عليها.","لا نقارن وضعنا المادي بوضع الآخرين.","لا نُدخل الأهل أو غيرهم في مشكلاتنا المالية إلا باتفاقنا.","إذا اشتد التوتر نؤجل النقاش 24 ساعة ثم نعود إليه بهدوء.","نطلب استشارة مالية أو أسرية متخصصة إذا استمرت الأزمة أكثر من 3 أشهر."];
+function pactView(p){
+ const mine=(J.pact[me()]||{}).ok||[],th=(J.pact[them()]||{}).ok||[];
+ const all=mine.length===PACT.length&&th.length===PACT.length;
+ p.innerHTML=`<section class="panel"><h3>ميثاق الضيق المادي</h3>
+  <p class="muted">اتفاق مكتوب بينكما لما تفعلانه عندما تضيق الأحوال المادية، حتى لا تتحول الأزمة المالية إلى أزمة زوجية. يوقّع كل منكما البنود التي يلتزم بها، ويرى ما وقّعه الآخر.</p>
+  ${all?`<p class="band" style="color:var(--ok)">الميثاق موقّع من الطرفين</p>`:""}
+  <div class="pact">${PACT.map((t,i)=>`<div class="prow"><input type="checkbox" id="pc${i}" value="${i}" ${mine.includes(i)?"checked":""}><label for="pc${i}">${t}</label>
+   <span class="pst" style="color:var(${th.includes(i)?"--ok":"--muted"})">${th.includes(i)?"✓ "+esc(jn(them())):"لم يوقّع "+esc(jn(them()))}</span></div>`).join("")}</div>
+  <div class="btns"><button class="primary" id="pSave">${mine.length?"تحديث توقيعي":"توقيع الميثاق"}</button><button class="ghost" id="pAll">تحديد الكل</button></div>
+  <p class="note">إذا خالف أحدكما بنداً، سجّلها الطرف الآخر في «سجّل ملاحظة» تحت مجال «الضيق المادي»، ليعتذر أو يعمل عليها.</p></section>`;
+ document.getElementById("pAll").onclick=()=>{p.querySelectorAll(".prow input").forEach(c=>c.checked=true);J.dirty=true};
+ document.getElementById("pSave").onclick=async e=>{const ok=[...p.querySelectorAll(".prow input:checked")].map(c=>+c.value);e.target.disabled=true;
+  try{await col("pact").doc(me()).set({ok,at:Date.now()});J.dirty=false;toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
+}
+
+/* ===== children: keep them in the shade of both parents ===== */
+const KIDS_PACT=["لا نتشاجر ولا نرفع أصواتنا أمام الأبناء، ونؤجل النقاش حتى نكون وحدنا.","لا يتحدث أحدنا بسوء عن الآخر أمام الأبناء أو لهم.","لا نذكر الطلاق أو الانفصال أمام الأبناء أبداً.","لا نستخدم الأبناء وسيلة ضغط ولا لنقل الرسائل بيننا.","بعد أي خلاف رآه الأبناء نطمئنهم معاً بأننا بخير وأنهم ليسوا السبب.","يبقى الأب والأم معاً في حياة الأبناء: في القرارات، والمناسبات، والمدرسة، والوقت اليومي."];
+const kidsList=()=>(J.meta&&J.meta.kids)||[];
+const kidsNames=()=>kidsList().map(k=>k.n).filter(Boolean);
+const age=y=>y?Math.max(0,new Date().getFullYear()-y):null;
+function kidsLine(){const n=kidsNames();return n.length?`${n.map(esc).join(" و")} ${n.length>1?"يحتاجون":"يحتاج"} إلى أب وأم معاً، لا إلى أبوين متخاصمين.`:"أبناؤكما يحتاجون إلى أب وأم معاً، لا إلى أبوين متخاصمين."}
+function kidsView(p){
+ const kl=kidsList(),mine=(J.pact["kids_"+me()]||{}).ok||[],th=(J.pact["kids_"+them()]||{}).ok||[];
+ const m=new Date();m.setDate(1);m.setHours(0,0,0,0);
+ const front=J.issues.filter(i=>i.kids),frontMonth=front.filter(i=>i.created>=m.getTime());
+ const ages=kl.map(k=>age(k.y)).filter(a=>a!=null);
+ const tips=[[0,5,"دون 6 سنوات","احتضنه وقل له جملة قصيرة: «بابا وماما بخير ويحبانك». عودا إلى روتينه المعتاد فوراً، فالروتين يعيد له الأمان."],
+  [6,12,"من 6 إلى 12 سنة","اجلسا معه معاً، واعترفا بأنكما اختلفتما ثم تصالحتما. أكّدا أنه ليس السبب، واسمحا له أن يسأل ويعبّر عن خوفه."],
+  [13,40,"المراهقون","تحدثا معه بصدق دون تفاصيل الخلاف، ولا تطلبا منه الوقوف مع أحد. اعتذار الوالد أمامه يعلّمه كيف يُصلح علاقاته."]];
+ p.innerHTML=`<section class="panel kidsban"><h3>حساب الأبناء</h3>
+  <p>${kidsLine()} عند أي خلاف، يعيش الأبناء في ظل الأب والأم معاً، لا كأنهم أيتام والوالدان أحياء.</p>
+  <p class="sub">تبيّن نظرية الأمان العاطفي (Cummings وDavies) أن ما يؤذي الأبناء ليس وجود الخلاف، بل الخلاف العدائي أمامهم، وغياب المصالحة، وجرّهم إلى صف أحد الوالدين.</p></section>
+ <div class="stats">
+  <div class="stat"><b>${kl.length}</b><span>الأبناء المسجّلون</span></div>
+  <div class="stat"><b style="color:var(${frontMonth.length?"--crit":"--ok"})">${frontMonth.length}</b><span>خلافات حدثت أمام الأبناء هذا الشهر</span></div>
+  <div class="stat"><b style="color:var(--ok)">${front.filter(i=>i.status==="resolved").length} / ${front.length}</b><span>منها عولجت</span></div>
+ </div>
+ <section class="panel"><h3>أبناؤنا</h3>
+  ${kl.length?`<div class="kids">${kl.map((k,i)=>`<span class="kid"><span data-notr>${esc(k.n)}</span>${k.y?` · ${age(k.y)} سنة`:""}<button class="ghost" data-del="${i}" aria-label="حذف">×</button></span>`).join("")}</div>`:`<p class="muted">أضف أسماء أبنائكما ليظهروا في تذكير وقت الخلاف.</p>`}
+  <div class="kidadd"><div class="field"><label for="kName">الاسم</label><input id="kName"></div>
+   <div class="field"><label for="kYear">سنة الميلاد</label><input id="kYear" inputmode="numeric" maxlength="4" dir="ltr" placeholder="2018"></div>
+   <button id="kAdd">إضافة</button></div>
+  <label class="sub" style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="kNone" ${J.meta.noKids?"checked":""}> ليس لدينا أبناء (يُخفي محور الأبناء من استبيانكما)</label></section>
+ <section class="panel"><h3>ميثاق الأبناء</h3>
+  <p class="muted">يوقّع كل منكما على ما يلتزم به تجاه أبنائكما مهما اختلفتما.</p>
+  <div class="pact">${KIDS_PACT.map((t,i)=>`<div class="prow"><input type="checkbox" id="kp${i}" value="${i}" ${mine.includes(i)?"checked":""}><label for="kp${i}">${t}</label>
+   <span class="pst" style="color:var(${th.includes(i)?"--ok":"--muted"})">${th.includes(i)?"✓ "+esc(jn(them())):"لم يوقّع "+esc(jn(them()))}</span></div>`).join("")}</div>
+  <div class="btns"><button class="primary" id="kpSave">${mine.length?"تحديث توقيعي":"توقيع ميثاق الأبناء"}</button></div></section>
+ <section class="panel"><h3>طمأنة الأبناء بعد خلاف رأوه</h3>
+  ${tips.filter(t=>!ages.length||ages.some(a=>a>=t[0]&&a<=t[1])).map(t=>`<p><b>${t[2]}:</b> ${t[3]}</p>`).join("")}
+  <p class="note">أفضل ما يراه الابن بعد الخلاف هو أن يرى والديه يتصالحان. المصالحة أمامه تُصلح كثيراً مما أفسده الخلاف أمامه.</p></section>`;
+ p.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{const l=kidsList().filter((_,i)=>i!=b.dataset.del);try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({kids:l})}catch(e){toast("تعذّر الحذف")}});
+ document.getElementById("kAdd").onclick=async()=>{const n=document.getElementById("kName").value.trim(),y=+document.getElementById("kYear").value.trim()||null;
+  if(!n)return toast("اكتب اسم الابن أو الابنة");
+  try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({kids:[...kidsList(),{n,y}]});J.dirty=false;toast("أُضيف")}catch(e){toast("تعذّر الحفظ")}};
+ document.getElementById("kNone").onchange=async e=>{try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({noKids:e.target.checked})}catch(x){toast("تعذّر الحفظ")}};
+ document.getElementById("kpSave").onclick=async e=>{const ok=[...p.querySelectorAll(".prow input:checked")].map(c=>+c.value);e.target.disabled=true;
+  try{await col("pact").doc("kids_"+me()).set({ok,at:Date.now()});J.dirty=false;toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
+}
+
+/* ===== "we are in a conflict now" pause screen ===== */
+const sosEl=document.getElementById("sos");let sosT=null;
+function openSos(){
+ sosEl.hidden=false;
+ sosEl.innerHTML=`<section class="panel sosp">
+  <div class="who"><h2>توقّفا قليلاً</h2><button class="ghost" id="sosX">إغلاق</button></div>
+  <p class="kidsline">${typeof J!=="undefined"&&J.state==="ready"?kidsLine():"أبناؤكما يحتاجون إلى أب وأم معاً، لا إلى أبوين متخاصمين."}</p>
+  <p>عندما يشتد الغضب يتوقف العقل عن الإصغاء. خذا استراحة 20 دقيقة في مكانين منفصلين، ثم عودا للحديث بهدوء.</p>
+  <div class="timer" id="sosTime">20:00</div>
+  <div class="btns"><button class="primary" id="sosGo">ابدأ استراحة 20 دقيقة</button></div>
+  <ol class="agenda">
+   <li>لا كلمة طلاق، ولا سخرية، ولا تذكير بأخطاء الماضي.</li>
+   <li>إذا كان الأبناء حاضرين، أوقفا النقاش فوراً وطمئناهم.</li>
+   <li>تنفّس ببطء: شهيق 4 ثوانٍ، ثم زفير 6 ثوانٍ، عشر مرات.</li>
+   <li>بعد أن تهدأ، اكتب ما يضايقك في «سجّل ملاحظة» بدل الجدال.</li>
+  </ol>
+  ${typeof J!=="undefined"&&J.state==="ready"?`<div class="btns"><button id="sosUrg">إرسال طلب معالجة طارئة</button></div>`:""}</section>`;
+ const su=document.getElementById("sosUrg");if(su)su.onclick=()=>{clearInterval(sosT);sosEl.hidden=true;location.hash="#journal";J.sub="compose";J.preUrgent=true;J.justSent=false;J.dirty=false;jRender()};
+ document.getElementById("sosX").onclick=()=>{clearInterval(sosT);sosEl.hidden=true};
+ document.getElementById("sosGo").onclick=e=>{clearInterval(sosT);let left=1200;e.target.textContent="إعادة البدء";
+  const t=document.getElementById("sosTime");sosT=setInterval(()=>{left--;t.textContent=String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0");
+   if(left<=0){clearInterval(sosT);t.textContent="انتهت الاستراحة. تحدّثا الآن بهدوء"}},1000)};
+ sosEl.scrollIntoView({behavior:"smooth"});
+}
+document.getElementById("sosBtn").onclick=openSos;
+
+function historyView(p){
+ const f=J.filter,list=J.issues.filter(i=>f==="all"||(f==="open"?i.status!=="resolved":i.status==="resolved")).sort((a,b)=>(a.status==="resolved")-(b.status==="resolved")||byImportance(a,b));
+ p.innerHTML=`<div class="subtabs">${[["all","الكل"],["open","المفتوحة"],["done","المحلولة"]].map(([k,t])=>`<button data-f="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>
+  ${list.length?list.map(i=>issueCard(i)).join(""):`<section class="panel"><p class="muted">لا توجد ملاحظات هنا بعد.</p></section>`}`;
+ p.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{J.filter=b.dataset.f;jRender()});
+}
+jInit();
+</script>
+<script>
+/* ===== language switcher: Arabic is the source; other languages are translated by Claude on first use and cached for everyone ===== */
+const LANGS=[["ar","العربية"],["en","English"],["fr","Français"],["es","Español"],["pt","Português"],["de","Deutsch"],["it","Italiano"],["nl","Nederlands"],["sv","Svenska"],["pl","Polski"],["ru","Русский"],["uk","Українська"],["el","Ελληνικά"],["tr","Türkçe"],["fa","فارسی"],["ur","اردو"],["ps","پښتو"],["ku","Kurdî"],["he","עברית"],["hi","हिन्दी"],["bn","বাংলা"],["ta","தமிழ்"],["ml","മലയാളം"],["id","Bahasa Indonesia"],["ms","Bahasa Melayu"],["tl","Filipino"],["vi","Tiếng Việt"],["th","ไทย"],["zh","中文"],["ja","日本語"],["ko","한국어"],["sw","Kiswahili"],["am","አማርኛ"],["so","Soomaali"],["ha","Hausa"]];
+const RTL=new Set(["ar","fa","ur","ps","he"]);
+const AR=/[؀-ۿ]/;
+const I={lang:"ar",dict:{},queue:new Set(),busy:false,sample:undefined,touched:[],outs:new Set(),timer:null};
+const wrapEl=document.querySelector(".wrap"),langSel=document.getElementById("langSel"),langStat=document.getElementById("langStat");
+langSel.innerHTML=LANGS.map(([c,n])=>`<option value="${c}">${n}</option>`).join("");
+const h32=s=>{let h=5381;for(const ch of s)h=((h*33)^ch.codePointAt(0))>>>0;return h.toString(36)};
+const lname=c=>(LANGS.find(l=>l[0]===c)||[,c])[1];
+const enNames={ar:"Arabic",en:"English",fr:"French",es:"Spanish",pt:"Portuguese",de:"German",it:"Italian",nl:"Dutch",sv:"Swedish",pl:"Polish",ru:"Russian",uk:"Ukrainian",el:"Greek",tr:"Turkish",fa:"Persian",ur:"Urdu",ps:"Pashto",ku:"Kurdish (Kurmanji)",he:"Hebrew",hi:"Hindi",bn:"Bengali",ta:"Tamil",ml:"Malayalam",id:"Indonesian",ms:"Malay",tl:"Filipino",vi:"Vietnamese",th:"Thai",zh:"Simplified Chinese",ja:"Japanese",ko:"Korean",sw:"Swahili",am:"Amharic",so:"Somali",ha:"Hausa"};
+
+function restore(){I.touched.forEach(t=>{if(t.n.isConnected){if(t.a)t.n.setAttribute(t.a,t.v);else t.n.nodeValue=t.v}});I.touched=[];I.outs=new Set()}
+function applyAll(){
+ if(I.lang==="ar")return;
+ const tw=document.createTreeWalker(wrapEl,NodeFilter.SHOW_TEXT,{acceptNode:n=>n.parentElement.closest("[data-notr],script,style,select,textarea")?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT});
+ for(let n;(n=tw.nextNode());){const raw=n.nodeValue,t=raw.trim();
+  if(!t||!AR.test(t)||I.outs.has(t))continue;
+  const tr=I.dict[t];if(tr){I.touched.push({n,v:raw});n.nodeValue=raw.replace(t,()=>tr);I.outs.add(tr)}else I.queue.add(t)}
+ wrapEl.querySelectorAll("[placeholder],[title],[aria-label]").forEach(el=>{if(el.closest("[data-notr]"))return;
+  for(const a of["placeholder","title","aria-label"]){const v=el.getAttribute(a);if(!v||!AR.test(v)||I.outs.has(v))continue;
+   const tr=I.dict[v];if(tr){I.touched.push({n:el,a,v});el.setAttribute(a,tr);I.outs.add(tr)}else I.queue.add(v)}});
+ if(I.queue.size&&!I.busy)flush();
+}
+async function getSample(){if(I.sample!==undefined)return I.sample;try{I.sample=window.claude&&claude.use?await claude.use("sample"):null}catch(e){I.sample=null}return I.sample}
+async function flush(){
+ I.busy=true;const lang=I.lang,sample=await getSample();
+ if(!sample){langStat.textContent="Translation needs a signed-in claude.ai viewer";I.busy=false;return}
+ while(I.queue.size&&I.lang===lang){
+  const batch=[...I.queue].slice(0,50);batch.forEach(b=>I.queue.delete(b));
+  langStat.textContent="⏳ "+lname(lang);
+  try{
+   const out=await sample.json(`You translate the interface of a marriage-satisfaction questionnaire and couples' journal app from Arabic into ${enNames[lang]}.
+Rules: translate each string naturally for a ${enNames[lang]} reader; keep personal names, numbers, %, symbols (● ▲ ▼ / · «») and Latin words unchanged; some strings are fragments of one sentence, translate them as fragments; keep the respectful, warm counselling tone; keep wording about intimacy discreet.
+Return ONLY a JSON array of ${batch.length} strings in the same order.
+${JSON.stringify(batch)}`,{modelTier:"quick"});
+   if(!Array.isArray(out))throw 0;
+   const add={};batch.forEach((s,i)=>{const t=out[i];if(typeof t==="string"&&t.trim()){I.dict[s]=t.trim();add["k"+h32(s)]={s,t:t.trim()}}});
+   persist(lang,add);applyAll();
+  }catch(e){if(e&&e.code==="not_granted"){langStat.textContent="Translation was not allowed";break}
+   langStat.textContent="Some text could not be translated";}
+ }
+ if(I.lang===lang&&!I.queue.size)langStat.textContent="";
+ I.busy=false;if(I.queue.size)applyAll();
+}
+async function persist(lang,add){
+ try{localStorage.setItem("wifaq-i18n-"+lang,JSON.stringify(I.dict))}catch(e){}
+ if(!J.db||!Object.keys(add).length)return;
+ const ref=J.db.doc("i18n/"+lang);
+ try{await ref.update(add)}catch(e){try{await ref.set(add)}catch(x){}}
+}
+async function setLang(lang){
+ restore();I.queue.clear();I.lang=lang;langSel.value=lang;
+ try{localStorage.setItem("wifaq-lang",lang)}catch(e){}
+ wrapEl.dir=RTL.has(lang)?"rtl":"ltr";wrapEl.lang=lang;langStat.textContent="";
+ if(lang==="ar"){render();if(J.state==="ready")jRender();else jRender();return}
+ try{I.dict=JSON.parse(localStorage.getItem("wifaq-i18n-"+lang))||{}}catch(e){I.dict={}}
+ applyAll();
+ const db=J.db||(window.claude&&claude.use?await claude.use("db").catch(()=>null):null);
+ if(db&&I.lang===lang){try{const s=await db.doc("i18n/"+lang).get();
+  if(s.exists){Object.values(s.data()).forEach(v=>{if(v&&v.s&&v.t&&!I.dict[v.s])I.dict[v.s]=v.t});restore();applyAll()}}catch(e){}}
+}
+langSel.onchange=()=>setLang(langSel.value);
+if(STANDALONE)document.querySelector(".langbox").hidden=true;
+const appEl=document.getElementById("appInfo");
+document.getElementById("navApp").onclick=()=>{if(!appEl.hidden){appEl.hidden=true;return}appEl.hidden=false;
+ appEl.innerHTML=`<section class="panel"><div class="who"><h2>تثبيت الموقع كتطبيق</h2><button class="ghost" id="appX">إغلاق</button></div>
+  <div class="two"><div><h3>آيفون (Safari)</h3><ol class="agenda"><li>افتح الرابط في Safari.</li><li>اضغط زر المشاركة (المربع والسهم للأعلى).</li><li>اختر «إضافة إلى الشاشة الرئيسية» ثم «إضافة».</li></ol></div>
+  <div><h3>أندرويد (Chrome)</h3><ol class="agenda"><li>افتح الرابط في Chrome.</li><li>اضغط النقاط الثلاث أعلى الشاشة.</li><li>اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».</li></ol></div></div>
+  <p class="note">${STANDALONE?"هذه نسخة التطبيق المستقلة، وتعمل دون إنترنت بعد أول فتح.":"تظهر أيقونة على شاشة الجوال تفتح الموقع مباشرة. وتوجد أيضاً نسخة تطبيق مستقلة يمكن رفعها على نطاقك الخاص."}</p></section>`;
+ document.getElementById("appX").onclick=()=>appEl.hidden=true;appEl.scrollIntoView({behavior:"smooth"})};
+new MutationObserver(()=>{if(I.lang==="ar")return;clearTimeout(I.timer);I.timer=setTimeout(applyAll,60)}).observe(wrapEl,{childList:true,subtree:true});
+try{const saved=localStorage.getItem("wifaq-lang");if(saved&&saved!=="ar")setLang(saved)}catch(e){}
+</script>
+<script>
+/* ===== top bar for the survey: husband / wife buttons, printable copy, attach a filled file ===== */
+function needed(k){return itemList(k).filter(x=>!(S.noKids&&x.kids))}
+function answeredCount(k){return needed(k).filter(x=>{const v=S.ans[k][x.id];return v&&v[0]&&v[1]}).length}
+let DL;(async()=>{try{DL=window.claude&&claude.use?await claude.use("downloads"):null}catch(e){DL=null}})();
+
+function surveyBar(){
+ const mr=myRole();
+ if(S.online&&!mr)return;
+ const pc=k=>{if(mr&&k===mr){const d=J.sv[mr],a=(S.online&&S.stage==="fill-"+mr)?S.ans[mr]:(d&&d.ans)||{};return Math.round(needed(k).filter(x=>{const v=a[x.id];return v&&v[0]&&v[1]}).length/needed(k).length*100)}return Math.round(answeredCount(k)/needed(k).length*100)};
+ const bothOnline=mr&&J.sv.h&&J.sv.h.done&&J.sv.w&&J.sv.w.done;
+ const bar=document.createElement("div");bar.className="sbar";
+ bar.innerHTML=`
+  ${(mr?[mr]:["h","w"]).map(r=>`<button data-start="${r}" class="${S.stage==="fill-"+r?"on":""}">${mr?(r==="h"?"استبياني (الزوج)":"استبياني (الزوجة)"):(r==="h"?"استبيان الزوج":"استبيان الزوجة")} <small>${pc(r)}%</small></button>`).join("")}
+  <span class="sp"></span>
+  <button id="bPrint">نسخة للطباعة</button>
+  <button id="bUp">إرفاق ملف للتحليل</button>
+  ${(mr?bothOnline:isDone("h")&&isDone("w")&&!S.sample)&&S.stage!=="report"?`<button class="primary" id="bRep">التقرير</button>`:""}`;
+ app.prepend(bar);
+ const panel=document.createElement("div");panel.id="sPanel";panel.hidden=true;bar.after(panel);
+ bar.querySelectorAll("[data-start]").forEach(b=>b.onclick=()=>{
+  if(mr)return startOnline();
+  const nh=document.getElementById("nh"),nw=document.getElementById("nw"),nk=document.getElementById("nokids");
+  if(S.sample){S=fresh()}
+  if(nh)S.names.h=nh.value.trim();if(nw)S.names.w=nw.value.trim();if(nk)S.noKids=nk.checked;
+  S.stage="fill-"+b.dataset.start;S.page=0;S.showMiss=false;render()});
+ const rep=document.getElementById("bRep");if(rep)rep.onclick=()=>{if(mr)return showJointReport();S.stage="report";render()};
+ document.getElementById("bPrint").onclick=()=>{panel.hidden=!panel.hidden||panel.dataset.kind!=="print";panel.dataset.kind="print";printPanel(panel)};
+ document.getElementById("bUp").onclick=()=>{panel.hidden=!panel.hidden||panel.dataset.kind!=="up";panel.dataset.kind="up";uploadPanel(panel)};
+}
+
+function printPanel(p){
+ p.innerHTML=`<section class="panel">
+  <h3>نسخة للطباعة أو للتعبئة</h3>
+  <div class="btns">
+   ${(myRole()?[myRole()]:["h","w"]).map(r=>`<button data-dl="html" data-k="${r}">طباعة استبيان ${r==="h"?"الزوج":"الزوجة"}</button><button data-dl="csv" data-k="${r}">ملف Excel ${r==="h"?"للزوج":"للزوجة"}</button>`).join("")}
+  </div>
+  <ol class="agenda sub">
+   <li><b>للطباعة:</b> حمّل الملف، وافتحه في المتصفح، ثم اضغط Ctrl+P (أو مشاركة ← طباعة في الجوال).</li>
+   <li>ضع علامة ✓ أو X في مربع واحد لكل خانة. خانة «القوة» ثابتة ولا تُعبّأ.</li>
+   <li>بعد التعبئة صوّر الصفحات بوضوح، وارفع الصور من زر «إرفاق ملف للتحليل».</li>
+   <li><b>ملف Excel:</b> افتحه، واكتب رقماً من 1 إلى 5 في عمودي «كم يحدث» و«الأهمية»، ثم احفظه CSV وارفعه.</li>
+  </ol>
+  <p class="err" id="dlErr" hidden></p></section>`;
+ p.querySelectorAll("[data-dl]").forEach(b=>b.onclick=async()=>{
+  const k=b.dataset.k,kind=b.dataset.dl,who=k==="h"?"husband":"wife";
+  const data=kind==="html"?printableHTML(k):csvFor(k),filename=`wifaq-${who}-survey.${kind}`;
+  const e=document.getElementById("dlErr");e.hidden=true;
+  if(!DL){if(STANDALONE){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:kind==="html"?"text/html":"text/csv"}));a.download=filename;document.body.appendChild(a);a.click();a.remove();toast("تم التحميل");return}
+   e.textContent="التحميل غير متاح في هذا العرض. افتح الصفحة في claude.ai وأنت مسجّل الدخول.";e.hidden=false;return}
+  try{await DL.save({filename,data});toast("جاهز للحفظ")}catch(x){if(x&&x.code==="declined")return;e.textContent="تعذّر تجهيز الملف. حاول مرة أخرى.";e.hidden=false}});
+}
+
+function printableHTML(k){
+ const L=itemList(k),who=k==="h"?"الزوج يقيّم الزوجة":"الزوجة تقيّم الزوج",name=nm(k);
+ const box=`<span class="b"></span>`,boxes=[1,2,3,4,5].map(n=>`<span class="c">${box}<i>${n}</i></span>`).join("");
+ let rows="",last="";
+ L.forEach(x=>{if(x.ax!==last){rows+=`<tr class="ax"><td colspan="5">${x.ax}${x.kids?" (تخطَّه إن لم يكن لديكما أبناء)":""}</td></tr>`;last=x.ax}
+  rows+=`<tr><td class="n">${x.n}</td><td class="t">${x.t}${x.neg?' <span class="neg">سلبي</span>':""}</td><td class="g">${boxes}</td><td class="g">${boxes}</td><td class="w">${x.w}</td></tr>`});
+ return`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>استبيان ${who}</title><style>
+ @page{size:A4;margin:12mm}*{box-sizing:border-box}body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;font-size:11px;color:#111;margin:0;padding:12px}
+ h1{font-size:17px;margin:0 0 4px}p{margin:2px 0}.meta{display:flex;gap:24px;margin:8px 0;font-size:12px}.meta span{border-bottom:1px solid #999;min-width:160px;display:inline-block}
+ table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #bbb;padding:4px 5px;vertical-align:middle}th{background:#eee;font-size:10px}
+ tr{page-break-inside:avoid}.ax td{background:#e6efed;font-weight:bold;font-size:11.5px}.n{width:24px;text-align:center;font-weight:bold}.w{width:34px;text-align:center;border-inline-start:2px solid #555}
+ .g{width:122px;white-space:nowrap;text-align:center}.c{display:inline-flex;flex-direction:column;align-items:center;margin:0 2px}.b{width:14px;height:14px;border:1.5px solid #333;display:block}.c i{font-style:normal;font-size:8px}
+ .neg{font-size:8px;border:1px solid #a33;color:#a33;border-radius:6px;padding:0 3px}.legend{font-size:10px;color:#333;margin-top:4px}
+ </style></head><body>
+ <h1>ميزان الوفاق الزوجي · استبيان ${who}</h1>
+ <div class="meta"><div>الاسم: <span>${esc(name)}</span></div><div>التاريخ: <span></span></div></div>
+ <p class="legend"><b>كم يحدث:</b> 1 أبداً · 2 نادراً · 3 أحياناً · 4 غالباً · 5 دائماً &nbsp;|&nbsp; <b>الأهمية لي:</b> 1 غير مهم · 2 قليل · 3 متوسط · 4 مهم · 5 أساسي &nbsp;|&nbsp; <b>القوة:</b> الوزن العالمي للبند (لا يُعبّأ)</p>
+ <p class="legend">ضع علامة واضحة في مربع واحد لكل خانة. بعد التعبئة صوّر الصفحات وارفعها في الموقع من «إرفاق ملف للتحليل».</p>
+ <table><thead><tr><th>#</th><th>العبارة</th><th>كم يحدث</th><th>الأهمية لي</th><th>القوة</th></tr></thead><tbody>${rows}</tbody></table>
+ </body></html>`;
+}
+const csvCell=v=>{v=String(v??"");return/[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v};
+function csvFor(k){
+ const head=["الرقم","الرمز","المحور","العبارة","كم يحدث (1-5)","الأهمية (1-5)","قوة النقطة"];
+ const rows=itemList(k).map(x=>{const v=S.ans[k][x.id]||[];return[x.n,k+"."+x.id,x.ax,x.t,v[0]||"",v[1]||"",x.w]});
+ return"﻿"+[head,...rows].map(r=>r.map(csvCell).join(",")).join("\r\n");
+}
+function parseCSV(t){const rows=[];let row=[],cell="",q=false;t=t.replace(/^﻿/,"");
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c==='"'){if(t[i+1]==='"'){cell+='"';i++}else q=false}else cell+=c}
+  else if(c==='"')q=true;else if(c===","||c===";"||c==="\t"){row.push(cell);cell=""}
+  else if(c==="\n"){row.push(cell);rows.push(row);row=[];cell=""}else if(c!=="\r")cell+=c}
+ if(cell||row.length){row.push(cell);rows.push(row)}return rows}
+const toNum=v=>{v=String(v||"").trim().replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d));const n=parseInt(v,10);return n>=1&&n<=5?n:0};
+
+function uploadPanel(p){
+ p.innerHTML=`<section class="panel">
+  <h3>إرفاق استبيان معبّأ للتحليل</h3>
+  <div class="chips">${(myRole()?[myRole()]:["h","w"]).map((r,i)=>`<input type="radio" name="upK" id="up${r}" value="${r}" ${i===0?"checked":""}><label for="up${r}">استبيان ${r==="h"?"الزوج":"الزوجة"}</label>`).join("")}</div>
+  <div class="field"><label for="upFile">صور الورق المعبّأ (يمكن اختيار عدة صفحات)، أو ملف Excel بصيغة CSV</label>
+   <input type="file" id="upFile" accept=".csv,text/csv,image/*" multiple></div>
+  <p class="sub">تُقرأ الصور بالذكاء الاصطناعي، فاحرص على أن تكون واضحة ومستقيمة. بعد القراءة راجع الإجابات وصحّح أي خطأ قبل الإنهاء.</p>
+  <p id="upMsg" class="sub"></p></section>`;
+ document.getElementById("upFile").onchange=async e=>{
+  const files=[...e.target.files];if(!files.length)return;
+  if(S.sample){const n=S.names;S=fresh();S.names=n}
+  const k=p.querySelector("input[name=upK]:checked").value,msg=document.getElementById("upMsg"),L=itemList(k);
+  const imgs=files.filter(f=>f.type.startsWith("image/")),csvs=files.filter(f=>!f.type.startsWith("image/"));
+  let got=0;
+  try{
+   for(const f of csvs){const rows=parseCSV(await f.text());
+    rows.slice(1).forEach(r=>{const code=(r[1]||"").trim(),id=code.includes(".")?code.split(".")[1]:null,num=+r[0];
+     const x=L.find(y=>y.id===id)||L.find(y=>y.n===num);const a=toNum(r[4]),i=toNum(r[5]);
+     if(x&&a&&i){S.ans[k][x.id]=[a,i];got++}})}
+   if(imgs.length){msg.textContent="⏳ جارٍ قراءة الصور…";
+    const sample=window.claude&&claude.use?await claude.use("sample"):null;
+    if(!sample){msg.textContent="قراءة الصور تحتاج فتح الصفحة في claude.ai وأنت مسجّل الدخول. يمكنك رفع ملف CSV بدلاً منها.";return}
+    const lim=await sample.limits(),max=(lim.images&&lim.images.maxCount)||1;
+    if(!lim.images){msg.textContent="قراءة الصور غير متاحة هنا. ارفع ملف CSV بدلاً منها.";return}
+    for(let s0=0;s0<imgs.length;s0+=max){
+     const out=await sample.json(`These photos show pages of a printed Arabic questionnaire. Each numbered row has a statement, then two groups of five boxes numbered 1-5: first group "كم يحدث" (how often), second group "الأهمية لي" (importance). The last column "القوة" is printed, ignore it.
+For every row number visible, read which single box is marked in each group (tick, X, circle, fill or scribble). If a group has no clear mark, use null.
+Return ONLY a JSON object like {"1":[4,5],"2":[2,null]} keyed by the row number.
+Rows on the form: ${L.map(x=>x.n+". "+x.t).join(" | ")}`,{images:imgs.slice(s0,s0+max),modelTier:"complex"});
+     Object.entries(out||{}).forEach(([n,v])=>{const x=L.find(y=>y.n===+n);if(x&&Array.isArray(v)){const a=toNum(v[0]),i=toNum(v[1]);if(a&&i){S.ans[k][x.id]=[a,i];got++}}})}}
+  }catch(x){msg.textContent=x&&x.code==="not_granted"?"لم يُسمح بقراءة الصور.":"تعذّرت قراءة الملف. تأكد من وضوح الصور أو من صيغة الملف.";return}
+  const left=needed(k).length-answeredCount(k);
+  if(myRole()===k){const a=S.ans[k];S.online=true;S.names={h:jn("h"),w:jn("w")};S.noKids=!!J.meta.noKids;S.ans[k]=a;onlineSave(k)}
+  S.stage="fill-"+k;S.page=0;S.showMiss=left>0;save();render();
+  toast(left?`قُرئت ${got} إجابة. راجعها وأكمل ${left} سؤالاً ناقصاً`:`قُرئت ${got} إجابة. راجعها ثم اضغط «إنهاء الاستبيان»`);
+ };
+}
+render();
+</script>
+
+
+
+</body></html>
