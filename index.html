@@ -5,6 +5,80 @@
 <link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>window.WIFAQ_STANDALONE=true;if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));</script>
+<script>/* Connects the page to this site's own server (no Claude account needed). */
+(function(){
+ const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+ let dev=LS.get("wifaq-device");
+ if(!dev){dev="d_"+Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,"0")).join("");LS.set("wifaq-device",dev)}
+ const sess=()=>LS.get("wifaq-session");
+ const clone=v=>v==null?v:JSON.parse(JSON.stringify(v));
+ async function api(method,url,body){
+  const s=sess();
+  const r=await fetch(url,{method,headers:{"content-type":"application/json",...(s?{authorization:"Bearer "+s.token}:{})},body:body?JSON.stringify(body):undefined,cache:"no-store"});
+  let j={};try{j=await r.json()}catch(e){}
+  if(r.status===401&&s&&url.indexOf("/api/auth/")<0){LS.del("wifaq-session");LS.del("wifaq-link");setTimeout(()=>location.reload(),300)}
+  if(!r.ok){const e=new Error(j.error||"تعذّر الاتصال بالخادم.");e.code=j.code||r.status;e.status=r.status;throw e}
+  return j;
+ }
+ /* local copy of the couple's data, refreshed every few seconds */
+ let cache=new Map(),ver=null,timer=null,polling=false,again=false;const listeners=new Set();
+ function emit(){listeners.forEach(l=>{try{l.fire()}catch(e){console.error(e)}})}
+ async function poll(force){
+  if(!sess())return;
+  if(polling){if(force)again=true;return}
+  polling=true;
+  try{const j=await api("GET","/api/all"+(ver&&!force?"?since="+ver:""));
+   if(!j.same){cache=new Map(j.docs.map(d=>[d.path,d.data]));ver=j.v;emit()}}
+  catch(e){}
+  finally{polling=false;if(again){again=false;poll(true)}}
+ }
+ function startPoll(){if(timer)return;timer=setInterval(()=>{if(!document.hidden)poll()},4000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)poll()});addEventListener("online",()=>poll(true))}
+ const mine=p=>{const s=sess();return!!(s&&p.indexOf("couples/"+s.code+"/")===0)};
+ const snap=(p,d)=>({id:p.split("/").pop(),exists:d!==undefined,data:()=>clone(d)});
+
+ function localRef(p){return{id:"link",path:p,
+  async get(){const l=LS.get("wifaq-link"),s=sess();const ok=!!(l&&s&&l.code===s.code);return snap(p,ok?l:undefined)},
+  async set(d){LS.set("wifaq-link",d)},async update(d){LS.set("wifaq-link",{...(LS.get("wifaq-link")||{}),...d})},
+  async delete(){LS.del("wifaq-link");try{await api("POST","/api/auth/logout")}catch(e){}LS.del("wifaq-session");cache=new Map();ver=null},
+  onSnapshot(cb){this.get().then(cb);return()=>{}}}}
+
+ function docRef(p){
+  if(p.indexOf("data/users/")===0)return localRef(p);
+  return{id:p.split("/").pop(),path:p,
+   async get(){if(!mine(p))return snap(p,undefined);const j=await api("GET","/api/doc?path="+encodeURIComponent(p));
+    if(j.exists)cache.set(p,j.data);else cache.delete(p);return snap(p,j.exists?j.data:undefined)},
+   async set(d){if(!mine(p))return;await api("PUT","/api/doc",{path:p,data:d});cache.set(p,clone(d));emit();poll(true)},
+   async update(d){if(!mine(p))return;const j=await api("PUT","/api/doc",{path:p,data:d,merge:true});cache.set(p,j.data);emit();poll(true)},
+   async delete(){if(!mine(p))return;await api("DELETE","/api/doc?path="+encodeURIComponent(p));cache.delete(p);emit();poll(true)},
+   onSnapshot(cb,err){const l={last:undefined,fire(){const d=cache.get(p),k=JSON.stringify(d===undefined?null:d);if(k===l.last)return;l.last=k;cb(snap(p,d))},err};
+    listeners.add(l);startPoll();if(ver!==null)l.fire();poll(true);return()=>listeners.delete(l)}};
+ }
+ function colRef(p,order){
+  if(p.indexOf("data/users/")===0)return{doc:id=>localRef(p+"/"+id)};
+  const list=()=>{const out=[];cache.forEach((d,k)=>{if(k.indexOf(p+"/")===0&&k.slice(p.length+1).indexOf("/")<0)out.push({id:k.slice(p.length+1),d})});
+   if(order){const[f,dir]=order;out.sort((a,b)=>{const x=a.d[f],y=b.d[f];return(x<y?-1:x>y?1:0)*(dir==="desc"?-1:1)})}
+   return out.map(o=>({id:o.id,exists:true,data:()=>clone(o.d)}))};
+  return{path:p,doc:id=>docRef(p+"/"+id),
+   async add(d){if(!mine(p))throw new Error("not allowed");const j=await api("POST","/api/col",{path:p,data:d});cache.set(p+"/"+j.id,clone(d));emit();poll(true);return docRef(p+"/"+j.id)},
+   orderBy(f,dir){return colRef(p,[f,dir||"asc"])},
+   async get(){await poll(true);const docs=list();return{docs,size:docs.length,empty:!docs.length}},
+   onSnapshot(cb,err){const l={last:undefined,fire(){const docs=list(),k=JSON.stringify(docs.map(x=>[x.id,x.data()]));if(k===l.last)return;l.last=k;cb({docs,size:docs.length,empty:!docs.length})},err};
+    listeners.add(l);startPoll();if(ver!==null)l.fire();poll(true);return()=>listeners.delete(l)}};
+ }
+ const db={doc:docRef,collection:p=>colRef(p)};
+ const user={id:async()=>dev,me:async()=>({id:dev,name:""}),isOwner:()=>false,canEdit:()=>false,can:()=>true,profiles:async()=>({})};
+
+ window.WIFAQ_API={
+  async auth(kind,body){
+   try{const j=await api("POST","/api/auth/"+kind,{...body,device:dev});
+    LS.set("wifaq-session",{token:j.token,code:j.code,role:j.role});cache=new Map();ver=null;return{ok:true}}
+   catch(e){return{ok:false,error:e.message}}
+  }
+ };
+ window.claude={use:async n=>n==="db"?db:n==="user"?user:null};
+})();
+</script>
 </head><body>
 <title>ميزان الوفاق الزوجي</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -534,7 +608,8 @@ render();
 </script>
 <script>
 /* ===== دفتر الأسبوع: مساحة مشتركة بين الزوجين ===== */
-const ART_URL="https://claude.ai/artifact/LoymkaJzKMivnK4aSiK99n";
+const SERVER=!!window.WIFAQ_API;
+const ART_URL=SERVER?location.origin+"/":"https://claude.ai/artifact/LoymkaJzKMivnK4aSiK99n";
 const ROLE={h:"الزوج",w:"الزوجة"};
 const FEELS=["الحزن","الجرح","الغضب","الإهمال","عدم التقدير","القلق","الإحراج","الوحدة"];
 const AXES=["الاحترام والتقدير","الغضب والخلاف","المودة والتعبير عن الحب","التواصل والحوار","الأسرة والوقت المشترك","الثقة والأمانة","المال والمستقبل","العلاقة الحميمة والهجر","الضيق المادي","الأبناء","أمر آخر"];
@@ -558,7 +633,8 @@ const wa=t=>"https://wa.me/?text="+encodeURIComponent(t);
 function route(){const j=location.hash==="#journal";
  document.getElementById("app").hidden=j;jv.hidden=!j;
  document.getElementById("tab-survey").setAttribute("aria-selected",!j);
- document.getElementById("tab-journal").setAttribute("aria-selected",j);}
+ document.getElementById("tab-journal").setAttribute("aria-selected",j);
+ if(!j&&route.ran&&typeof render==="function")render();route.ran=true;}
 addEventListener("hashchange",route);route();
 
 async function jInit(){
@@ -659,7 +735,7 @@ function inviteCard(){return`<section class="panel" style="border-color:var(--ac
  <p>يدخل ${ROLE[them()]} من «تسجيل الدخول» بنفس الرقم ورمز الدخول، فيرتبط بالمسار <b dir="ltr">${dispId(J.link.code)}/${ROLE_PATH[them()]}</b>. أخبره بالرمز شفهياً.</p>
  <div><span class="code" data-notr dir="ltr">${dispId(J.link.code)}</span></div>
  <div class="btns"><a class="wa" href="${wa(inviteText())}" target="_blank" rel="noopener">إرسال الدعوة عبر واتساب</a><button id="copyCode">نسخ نص الدعوة</button></div>
- <p class="note">قبل ذلك شارك هذه الصفحة معه من زر Share أعلى الصفحة بصلاحية «يمكنه التفاعل»، فبدونها لن يستطيع فتحها.</p></section>`}
+ ${SERVER?"":`<p class="note">قبل ذلك شارك هذه الصفحة معه من زر Share أعلى الصفحة بصلاحية «يمكنه التفاعل»، فبدونها لن يستطيع فتحها.</p>`}</section>`}
 async function copy(t){try{await navigator.clipboard.writeText(t);toast("تم النسخ")}catch(e){toast("لم يتم النسخ، حدّد النص وانسخه يدوياً")}}
 async function pinHash(u,p){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("wifaq:"+u+":"+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
 const USER_RE=/^[a-z0-9][a-z0-9-]{2,23}$/;
@@ -693,7 +769,7 @@ function setupView(){
   <p class="err" id="serr" hidden></p>
   <p class="sub">${isNew?"بعد الإنشاء، يدخل الطرف الآخر من «تسجيل الدخول» بنفس الرقم والرمز ويختار دوره.":"أول مرة؟ اختر «مستخدم جديد» إذا لم يُنشأ حساب لهذا الرقم بعد."}</p>
  </section>
- <p class="note">رقم الهاتف معرّف للحساب المشترك فقط، ولا تُرسل إليه رسائل تحقق. الذي يحمي الحساب هو رمز الدخول، فلا تشاركه مع غير زوجك أو زوجتك.</p>`;
+ <p class="note">${SERVER?"لا تحتاج أي حساب آخر: رقم الهاتف ورمز الدخول يكفيان. ":""}رقم الهاتف معرّف للحساب المشترك فقط، ولا تُرسل إليه رسائل تحقق. الذي يحمي الحساب هو رمز الدخول، فلا تشاركه مع غير زوجك أو زوجتك.</p>`;
  jv.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{J.loginRole=(jv.querySelector("input[name=lrole]:checked")||{}).value;J.loginTab=b.dataset.t;jRender()});
  const err=t=>{const e=document.getElementById("serr");e.textContent=t;e.hidden=false};
  const g=id=>{const e=document.getElementById(id);return e?e.value.trim():""};
@@ -704,6 +780,9 @@ function setupView(){
   if(isNew&&!/^\d{4,6}$/.test(pin))return err("رمز الدخول من 4 إلى 6 أرقام.");
   if(!pin)return err("اكتب رمز الدخول.");
   e.target.disabled=true;
+  if(SERVER){const r=await WIFAQ_API.auth(isNew?"register":"login",{code:u,pin,role,name});
+   if(!r.ok){e.target.disabled=false;return err(r.error)}
+   return linkTo(u,role)}
   try{const ref=J.db.doc(`couples/${u}/meta/info`),s=await ref.get(),d=s.exists?s.data():null;
    if(isNew){
     if(d){e.target.disabled=false;return err("يوجد حساب بهذا الرقم. اختر «تسجيل الدخول».")}
@@ -1170,7 +1249,7 @@ function printPanel(p){
   <ol class="agenda sub">
    <li><b>للطباعة:</b> حمّل الملف، وافتحه في المتصفح، ثم اضغط Ctrl+P (أو مشاركة ← طباعة في الجوال).</li>
    <li>ضع علامة ✓ أو X في مربع واحد لكل خانة. خانة «القوة» ثابتة ولا تُعبّأ.</li>
-   <li>بعد التعبئة صوّر الصفحات بوضوح، وارفع الصور من زر «إرفاق ملف للتحليل».</li>
+   <li>${window.WIFAQ_API?"بعد التعبئة على الورق، أدخل الإجابات في الموقع مباشرة، أو انقلها إلى ملف Excel وارفعه.":"بعد التعبئة صوّر الصفحات بوضوح، وارفع الصور من زر «إرفاق ملف للتحليل»."}</li>
    <li><b>ملف Excel:</b> افتحه، واكتب رقماً من 1 إلى 5 في عمودي «كم يحدث» و«الأهمية»، ثم احفظه CSV وارفعه.</li>
   </ol>
   <p class="err" id="dlErr" hidden></p></section>`;
@@ -1222,9 +1301,9 @@ function uploadPanel(p){
  p.innerHTML=`<section class="panel">
   <h3>إرفاق استبيان معبّأ للتحليل</h3>
   <div class="chips">${(myRole()?[myRole()]:["h","w"]).map((r,i)=>`<input type="radio" name="upK" id="up${r}" value="${r}" ${i===0?"checked":""}><label for="up${r}">استبيان ${r==="h"?"الزوج":"الزوجة"}</label>`).join("")}</div>
-  <div class="field"><label for="upFile">صور الورق المعبّأ (يمكن اختيار عدة صفحات)، أو ملف Excel بصيغة CSV</label>
-   <input type="file" id="upFile" accept=".csv,text/csv,image/*" multiple></div>
-  <p class="sub">تُقرأ الصور بالذكاء الاصطناعي، فاحرص على أن تكون واضحة ومستقيمة. بعد القراءة راجع الإجابات وصحّح أي خطأ قبل الإنهاء.</p>
+  <div class="field"><label for="upFile">${window.WIFAQ_API?"ملف Excel المعبّأ بصيغة CSV":"صور الورق المعبّأ (يمكن اختيار عدة صفحات)، أو ملف Excel بصيغة CSV"}</label>
+   <input type="file" id="upFile" accept="${window.WIFAQ_API?".csv,text/csv":".csv,text/csv,image/*"}" multiple></div>
+  <p class="sub">${window.WIFAQ_API?"بعد الرفع تظهر الإجابات في الاستبيان، فراجعها وأكمل الناقص قبل الإنهاء.":"تُقرأ الصور بالذكاء الاصطناعي، فاحرص على أن تكون واضحة ومستقيمة. بعد القراءة راجع الإجابات وصحّح أي خطأ قبل الإنهاء."}</p>
   <p id="upMsg" class="sub"></p></section>`;
  document.getElementById("upFile").onchange=async e=>{
   const files=[...e.target.files];if(!files.length)return;
@@ -1239,7 +1318,7 @@ function uploadPanel(p){
      if(x&&a&&i){S.ans[k][x.id]=[a,i];got++}})}
    if(imgs.length){msg.textContent="⏳ جارٍ قراءة الصور…";
     const sample=window.claude&&claude.use?await claude.use("sample"):null;
-    if(!sample){msg.textContent="قراءة الصور تحتاج فتح الصفحة في claude.ai وأنت مسجّل الدخول. يمكنك رفع ملف CSV بدلاً منها.";return}
+    if(!sample){msg.textContent=window.WIFAQ_API?"قراءة الصور غير متاحة في هذه النسخة. املأ ملف Excel وارفعه بصيغة CSV، أو أدخل الإجابات مباشرة في الموقع.":"قراءة الصور تحتاج فتح الصفحة في claude.ai وأنت مسجّل الدخول. يمكنك رفع ملف CSV بدلاً منها.";return}
     const lim=await sample.limits(),max=(lim.images&&lim.images.maxCount)||1;
     if(!lim.images){msg.textContent="قراءة الصور غير متاحة هنا. ارفع ملف CSV بدلاً منها.";return}
     for(let s0=0;s0<imgs.length;s0+=max){
