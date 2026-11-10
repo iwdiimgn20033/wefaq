@@ -97,6 +97,28 @@ function pgStore(url) {
 
 const store = process.env.DATABASE_URL ? pgStore(process.env.DATABASE_URL) : fileStore();
 
+/* ---------- phone notifications (Web Push) ---------- */
+const webpush = require("web-push");
+let vapid = null;
+async function initPush() {
+  if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+    vapid = { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY };
+  } else {
+    const r = await store.get("_vapid/keys");
+    if (r) vapid = r.data;
+    else { vapid = webpush.generateVAPIDKeys(); await store.put("_vapid/keys", vapid); }
+  }
+  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:noreply@wifaq.app", vapid.publicKey, vapid.privateKey);
+}
+const subId = endpoint => crypto.createHash("sha1").update(endpoint).digest("hex").slice(0, 24);
+async function pushTo(code, role, payload) {
+  const subs = await store.prefix(`_push/${code}/${role}/`);
+  await Promise.all(subs.map(async s => {
+    try { await webpush.sendNotification(s.data.sub, JSON.stringify(payload), { TTL: 86400, urgency: "high" }); }
+    catch (e) { if (e.statusCode === 404 || e.statusCode === 410) await store.del(s.path); else console.error("push failed:", e.statusCode || e.message); }
+  }));
+}
+
 /* ---------- helpers ---------- */
 const MAX_BODY = 1024 * 1024;
 const SEG = /^[A-Za-z0-9_\-.~:@+]{1,200}$/;
@@ -236,8 +258,20 @@ async function handleApi(req, res, url) {
     if (!checkPath(b.path, sess, "col") || !isObj(b.data)) return send(res, 403, { error: "غير مسموح." });
     if (JSON.stringify(b.data).length > 200000) return send(res, 413, { error: "البيانات كبيرة جداً." });
     const id = Date.now().toString(36) + crypto.randomBytes(5).toString("hex");
+    const isEvent = b.path === `couples/${sess.code}/events`;
+    if (isEvent) { b.data.by = sess.role; b.data.at = Date.now(); b.data.text = String(b.data.text || "").slice(0, 300); }
     await store.put(b.path + "/" + id, b.data);
-    return send(res, 200, { id });
+    send(res, 200, { id });
+    if (isEvent) pushTo(sess.code, sess.role === "h" ? "w" : "h", { title: "ميزان الوفاق", body: b.data.text, url: "/#journal", tag: b.data.ref || id }).catch(e => console.error(e));
+    return;
+  }
+
+  if (route === "GET /api/push/key") return send(res, 200, { key: vapid.publicKey });
+  if (route === "POST /api/push/subscribe") {
+    const b = await readBody(req), sub = b.sub;
+    if (!isObj(sub) || typeof sub.endpoint !== "string" || !/^https:\/\//.test(sub.endpoint) || !isObj(sub.keys)) return send(res, 400, { error: "اشتراك غير صالح." });
+    await store.put(`_push/${sess.code}/${sess.role}/${subId(sub.endpoint)}`, { sub: { endpoint: sub.endpoint, keys: { p256dh: String(sub.keys.p256dh || ""), auth: String(sub.keys.auth || "") } }, at: Date.now() });
+    return send(res, 200, { ok: true });
   }
 
   return send(res, 404, { error: "غير موجود." });
@@ -275,6 +309,6 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-store.init().then(() => {
+store.init().then(initPush).then(() => {
   server.listen(PORT, () => console.log(`Wifaq is running on port ${PORT} (storage: ${store.kind})`));
 }).catch(e => { console.error("Could not start storage:", e.message); process.exit(1); });

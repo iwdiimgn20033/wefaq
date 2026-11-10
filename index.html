@@ -70,6 +70,7 @@
  const user={id:async()=>dev,me:async()=>({id:dev,name:""}),isOwner:()=>false,canEdit:()=>false,can:()=>true,profiles:async()=>({})};
 
  window.WIFAQ_API={
+  call:(m,u,b)=>api(m,u,b),
   async auth(kind,body){
    try{const j=await api("POST","/api/auth/"+kind,{...body,device:dev});
     LS.set("wifaq-session",{token:j.token,code:j.code,role:j.role});cache=new Map();ver=null;return{ok:true}}
@@ -262,6 +263,27 @@ a.wa{display:inline-flex;align-items:center;gap:8px;border-radius:10px;padding:1
 .path{font-size:.78rem;border:1px solid var(--line);border-radius:6px;padding:2px 8px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
 .path b{font-weight:600}.path.on{border-color:var(--teal);color:var(--teal);background:var(--teal-soft)}
 .tblwrap{overflow-x:auto}
+.thread{display:flex;flex-direction:column;gap:8px;padding:8px;border-radius:12px;background:var(--chip)}
+.msg{max-width:85%;padding:8px 12px;border-radius:14px;background:var(--surface);box-shadow:0 1px 2px var(--shadow);display:flex;flex-direction:column;gap:2px}
+.msg.me{align-self:flex-start;background:var(--teal-soft);border-start-start-radius:4px}
+.msg.them{align-self:flex-end;border-start-end-radius:4px}
+.mh{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-size:.8rem}.mh small{color:var(--muted)}
+.mt{font-size:.72rem;font-weight:700;color:var(--accent);background:var(--accent-soft);border-radius:999px;padding:0 8px}
+.composer{display:flex;flex-direction:column;gap:6px}
+.composer textarea{min-height:52px}
+.okbtn{background:linear-gradient(180deg,var(--ok),color-mix(in srgb,var(--ok) 80%,#000));color:#fff;border-color:transparent}
+.solved{color:var(--ok);font-weight:600;font-size:.9rem}
+.topbtns{justify-content:space-between;align-items:center}
+.bell{position:relative}.bell.has{border-color:var(--accent);color:var(--accent)}
+.bellp{border:1px solid var(--accent-soft)}
+.evlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.evlist li{display:grid;grid-template-columns:28px minmax(0,1fr);gap:8px;padding:8px 6px;border-top:1px solid var(--line);border-radius:8px}
+.evlist li[data-ref]{cursor:pointer}.evlist li[data-ref]:hover{background:var(--chip)}
+.evlist li.new{background:var(--accent-soft)}
+.evlist small{color:var(--muted);font-size:.74rem}
+.evi{width:26px;height:26px;border-radius:50%;background:var(--teal-soft);color:var(--teal);display:flex;align-items:center;justify-content:center;font-size:.8rem}
+.pushbox{background:var(--teal-soft);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.issue.flash{outline:3px solid var(--accent);outline-offset:2px}
 .sep{border-color:var(--crit)}.sep h2{color:var(--crit);font-size:1.15rem}
 .kidsline{background:var(--teal-soft);color:var(--teal);border-radius:8px;padding:6px 12px;font-size:.9rem;font-weight:600}
 .kidsban{border-color:var(--teal)}
@@ -555,7 +577,7 @@ function reasonHTML(k,x){const key=k+"_"+x.id,writer=k==="h"?"w":"h",r=getReason
 function wireReasons(){app.querySelectorAll("[data-rs]").forEach(b=>b.onclick=async()=>{
  const key=b.dataset.rs,t=app.querySelector(`[data-rk="${key}"]`).value.trim();if(!t)return toast("اكتب السبب أولاً");
  b.disabled=true;const y=scrollY;
- if(S.online){try{await col("reasons").doc(key).set({text:t,at:Date.now()});J.reasons[key]=t}catch(e){b.disabled=false;return toast("تعذّر الحفظ")}}
+ if(S.online){try{await col("reasons").doc(key).set({text:t,at:Date.now()});J.reasons[key]=t;notify("reason",`${jn(me())} ${vb("كتب","كتبت")} سبب التقصير في إحدى النقاط: ${t.slice(0,60)}`)}catch(e){b.disabled=false;return toast("تعذّر الحفظ")}}
  else{S.reasons=S.reasons||{};S.reasons[key]=t}
  render();scrollTo(0,y);toast("حُفظ السبب")})}
 function report(){
@@ -617,8 +639,8 @@ const REPLY={
  apology:{label:"أعتذر",status:"اعتذار",ph:"أعتذر عن ... وسأحرص على ..."},
  working:{label:"سأعمل عليها",status:"قيد العمل",ph:"سأبدأ من هذا الأسبوع بأن ..."},
  talk:{label:"لنتحدث عنها",status:"موعد للحوار",ph:"يناسبني أن نتحدث يوم ... الساعة ..."}};
-const STATUS={new:["بانتظار الرد","--accent"],apology:["اعتذار","--teal"],working:["قيد العمل","--mid"],talk:["موعد للحوار","--minor"],resolved:["تمّ الحل","--ok"]};
-const J={db:null,user:null,uid:null,link:null,meta:{},issues:[],checks:[],sv:{},rounds:[],reasons:{},pact:{},sub:"inbox",unsub:[],state:"loading",dirty:false,replying:null,filter:"all",justSent:false};
+const STATUS={new:["بانتظار الرد","--accent"],open:["قيد النقاش","--teal"],apology:["اعتذار","--teal"],working:["قيد العمل","--mid"],talk:["موعد للحوار","--minor"],resolved:["تمّ الحل","--ok"]};
+const J={db:null,user:null,uid:null,link:null,meta:{},issues:[],checks:[],sv:{},rounds:[],reasons:{},pact:{},msgs:[],events:[],drafts:{},dtype:{},evSeenIds:new Set(),evLoaded:false,bellOpen:false,pushOn:false,focusTa:null,sub:"inbox",unsub:[],state:"loading",dirty:false,replying:null,filter:"all",justSent:false};
 const jv=document.getElementById("journalView");
 const other=r=>r==="h"?"w":"h";
 const jn=r=>(J.meta&&J.meta["name_"+r])||ROLE[r];
@@ -659,6 +681,10 @@ function jConnect(){
  J.unsub.push(J.db.collection(base+"/survey").onSnapshot(s=>{J.sv={};s.docs.forEach(d=>J.sv[d.id]=d.data());jRefresh()},jErr));
  J.unsub.push(J.db.collection(base+"/pact").onSnapshot(s=>{J.pact={};s.docs.forEach(d=>J.pact[d.id]=d.data());jRefresh()},jErr));
  J.unsub.push(J.db.collection(base+"/reasons").onSnapshot(s=>{J.reasons={};s.docs.forEach(d=>J.reasons[d.id]=d.data().text)},jErr));
+ J.evSeenIds=new Set();J.evLoaded=false;J.msgs=[];J.events=[];
+ J.unsub.push(J.db.collection(base+"/msgs").onSnapshot(s=>{J.msgs=s.docs.map(d=>({id:d.id,...d.data()}));jRefresh()},jErr));
+ J.unsub.push(J.db.collection(base+"/events").orderBy("at","desc").onSnapshot(s=>{J.events=s.docs.map(d=>({id:d.id,...d.data()}));onEvents(J.events);jRefresh()},jErr));
+ checkPush();
  J.unsub.push(J.db.collection(base+"/rounds").onSnapshot(s=>{J.rounds=s.docs.map(d=>({id:d.id,...d.data()}));jRefresh()},jErr));
  jRender();
  if(location.hash!=="#journal"&&!S.online){const y=scrollY;render();scrollTo(0,y)}
@@ -670,8 +696,8 @@ function counts(){
  if(J.state!=="ready")return{reply:0,confirm:0,mine:0,resolvedWeek:0};
  const wk=weekKey();
  return{
-  reply:J.issues.filter(i=>i.from===them()&&i.status==="new").length,
-  confirm:J.issues.filter(i=>i.from===me()&&i.status!=="new"&&i.status!=="resolved").length,
+  reply:J.issues.filter(needsMe).length,
+  confirm:0,
   mine:J.issues.filter(i=>i.from===me()&&i.status!=="resolved").length,
   resolvedWeek:J.issues.filter(i=>i.status==="resolved"&&i.resolvedAt&&weekKey(i.resolvedAt)===wk).length};
 }
@@ -680,9 +706,9 @@ function navLogin(){const b=document.getElementById("navLogin");if(!b)return;
  if(J.state==="ready"&&J.link){b.textContent=dispId(J.link.code)+"/"+ROLE_PATH[J.link.role];b.classList.add("in");b.dataset.notr=""}
  else{b.textContent="تسجيل الدخول";b.classList.remove("in");delete b.dataset.notr}}
 document.getElementById("navLogin").onclick=()=>{location.hash="#journal";route();if(J.state==="setup"){J.loginTab="login";jRender()}window.scrollTo(0,0)};
-function badge(){navLogin();const c=counts(),n=c.reply+c.confirm,b=document.getElementById("jbadge");b.hidden=!n;b.textContent=n;
+function badge(){navLogin();const c=counts(),n=Math.max(c.reply,unread()),b=document.getElementById("jbadge");b.hidden=!n;b.textContent=n;
  const u=J.state==="ready"?J.issues.filter(i=>i.from===them()&&isUrgOpen(i)).length:0;document.title=u?`(عاجل ${u}) ميزان الوفاق الزوجي`:n?`(${n}) ميزان الوفاق الزوجي`:"ميزان الوفاق الزوجي"}
-function jRefresh(){badge();if(J.dirty||J.replying)return updateStats();jRender()}
+function jRefresh(){badge();if(J.dirty)return updateStats();jRender()}
 
 function jRender(){
  badge();
@@ -695,10 +721,12 @@ function jRender(){
   <p>يحتاج الدفتر المشترك إلى تسجيل الدخول في claude.ai، لأن الملاحظات تنتقل بين جهازي الزوجين.</p>
   <p class="muted">سجّل الدخول ثم افتح الصفحة من جديد. إذا وصلك الرابط من شخص آخر، اطلب منه أن يشاركه معك بصلاحية «يمكنه التفاعل» أو أعلى.</p></section>`;return}
  if(J.state==="setup")return setupView();
+ const ae=document.activeElement;J.focusTa=ae&&ae.dataset&&ae.dataset.ta?{id:ae.dataset.ta,pos:ae.selectionStart||0}:null;
  const c=counts();
  jv.innerHTML=`
  ${urgentBanner()}
- <div class="btns"><button class="urgbtn" id="newUrgent">طلب معالجة طارئة قبل أن تحتدّ المشكلة</button></div>
+ <div class="btns topbtns"><button class="urgbtn" id="newUrgent">طلب معالجة طارئة قبل أن تحتدّ المشكلة</button>${bellHTML()}</div>
+ ${bellPanel()}
  <header style="display:flex;flex-direction:column;gap:6px">
   <span class="eyebrow">بوابة الزوجين · أنت ${ROLE[me()]}</span>
   ${J.meta.noKids?"":`<p class="kidsline">${kidsLine()}</p>`}
@@ -720,14 +748,15 @@ function jRender(){
  const gu=document.getElementById("goUrgent");if(gu)gu.onclick=()=>{J.sub="inbox";J.dirty=false;J.replying=null;jRender()};
  const cp=document.getElementById("copyCode");if(cp)cp.onclick=()=>copy(inviteText());
  const p=document.getElementById("jpanel");
- p.oninput=()=>{J.dirty=true};
+ p.oninput=e=>{if(!(e.target.dataset&&e.target.dataset.ta)&&!(e.target.name||"").startsWith("rt-"))J.dirty=true};
+ wireBell();
  ({inbox:inboxView,compose:composeView,sv:svView,kids:kidsView,pact:pactView,week:weekView,progress:progressView,history:historyView})[J.sub](p);
 }
 function statsHTML(c){return`
- <div class="stat"><b style="color:var(${c.reply?"--accent":"--ink"})">${c.reply}</b><span>ملاحظات من ${esc(jn(them()))} تنتظر ردّك</span></div>
+ <div class="stat"><b style="color:var(${c.reply?"--accent":"--ink"})">${c.reply}</b><span>ملاحظات تنتظر ردّك</span></div>
  <div class="stat"><b>${c.mine}</b><span>ملاحظاتك المفتوحة</span></div>
  <div class="stat"><b style="color:var(--ok)">${c.resolvedWeek}</b><span>حُلّت هذا الأسبوع</span></div>`}
-function updateStats(){const s=document.getElementById("jstats");if(s)s.innerHTML=statsHTML(counts())}
+function updateStats(){const s=document.getElementById("jstats");if(s)s.innerHTML=statsHTML(counts());const b=document.getElementById("bell");if(b){b.outerHTML=bellHTML();wireBell()}}
 const ROLE_PATH={h:"husband",w:"wife"};
 const inviteText=()=>`انضم إليّ في بوابة الوفاق لنتابع علاقتنا ونقيس تحسّننا.\nالرابط: ${ART_URL}\nافتح «بوابة الزوجين» ثم «تسجيل الدخول»\n${/^p\d+$/.test(J.link.code)?"رقم الهاتف المشترك":"اسم المستخدم"}: ${dispId(J.link.code)}\nرمز الدخول: (سأخبرك به شفهياً)`;
 function inviteCard(){return`<section class="panel" style="border-color:var(--accent)">
@@ -818,7 +847,7 @@ function onlineSave(k){clearTimeout(svT);svT=setTimeout(()=>{if(!J.link||J.link.
 async function onlineDone(k){clearTimeout(svT);
  if(!J.link){toast("تعذّر الحفظ، افتح دفتر الأسبوع وسجّل الدخول");return}
  try{await col("survey").doc(k).set({ans:S.ans[k],done:true,at:Date.now()})}catch(e){toast("تعذّر الحفظ، حاول مرة أخرى");return}
- S=fresh();save();J.sub="sv";location.hash="#journal";jRender();toast("حُفظت إجاباتك في مسارك")}
+ notify("survey",`${jn(me())} ${vb("أكمل","أكملت")} الاستبيان`);S=fresh();save();J.sub="sv";location.hash="#journal";jRender();toast("حُفظت إجاباتك في مسارك")}
 function startOnline(){const r=me(),d=J.sv[r];S=fresh();S.online=true;S.noKids=!!J.meta.noKids;S.names={h:jn("h"),w:jn("w")};S.ans[r]=(d&&d.ans)||{};
  S.stage="fill-"+r;S.page=0;location.hash="#survey";render()}
 function showJointReport(){S=fresh();S.online=true;S.noKids=!!J.meta.noKids;S.names={h:jn("h"),w:jn("w")};S.ans={h:J.sv.h.ans,w:J.sv.w.ans};S.stage="report";location.hash="#survey";render()}
@@ -907,47 +936,113 @@ async function leaveSpace(){
  J.unsub.forEach(u=>u());J.unsub=[];J.link=null;J.state="setup";S=fresh();save();render();jRender()}
 
 /* one concern card */
-function issueCard(i,mode){
- const [st,sc]=STATUS[i.status]||STATUS.new, fromMe=i.from===me();
- const r=i.reply;
- return`<article class="issue ${mode==="reply"||mode==="confirm"?"hot":""} ${isUrgOpen(i)?"isurg":""}" data-id="${i.id}">
+/* ===== conversation on each concern: many replies until the person who raised it presses «تم حل المشكلة» ===== */
+const lastByOf=i=>i.lastBy||(i.status==="new"?i.from:other(i.from));
+const isOpen=i=>i.status!=="resolved";
+const needsMe=i=>isOpen(i)&&lastByOf(i)===them();
+function threadOf(i){
+ const legacy=i.reply?[{id:"legacy",by:other(i.from),type:i.reply.type,text:i.reply.text,at:i.reply.at||i.created}]:[];
+ return[...legacy,...J.msgs.filter(m=>m.issue===i.id)].sort((a,b)=>a.at-b.at)}
+const fmtTime=t=>new Date(t).toLocaleString("ar-QA",{weekday:"short",day:"numeric",month:"short",hour:"numeric",minute:"2-digit"});
+const vb=(m,f)=>me()==="h"?m:f;
+function issueCard(i){
+ const [st,sc]=STATUS[i.status]||STATUS.open, fromMe=i.from===me(), th=threadOf(i), open=isOpen(i), mine=needsMe(i);
+ return`<article class="issue ${mine?"hot":""} ${isUrgOpen(i)?"isurg":""}" data-id="${i.id}">
   <div class="meta"><span class="pill" style="color:var(${sc})">${st}</span><span>${fromMe?"منك":"من "+esc(jn(i.from))}</span><span>${esc(i.axis)}</span><span class="sev" title="الشدة ${i.sev} من 5">${"●".repeat(i.sev)}${"○".repeat(5-i.sev)}</span><span>${fmtDate(i.created)}</span>${i.kids?`<span class="pill" style="color:var(--crit)">أمام الأبناء</span>`:""}${i.urgent?`<span class="pill urg">عاجل · نتحدث ${URG[i.urgent]||""}${i.status==="new"?" · "+dueText(i):""}</span>`:""}</div>
   <p>شعرتُ بـ<b>${esc(i.feel)}</b> عندما <span data-notr>${esc(i.when)}</span>${i.need?`، وأحتاج <span data-notr>${esc(i.need)}</span>`:""}.</p>
-  ${r?`<div class="reply"><b>${esc(jn(i.from===me()?them():me()))} · ${REPLY[r.type].label}:</b> <span data-notr>${esc(r.text)}</span></div>`:""}
-  ${i.prevReply?`<p class="sub">ردّ سابق لم يكن كافياً: <span data-notr>${esc(i.prevReply.text)}</span></p>`:""}
-  ${mode==="reply"?`<div class="btns">${Object.entries(REPLY).map(([k,v])=>`<button data-act="open" data-type="${k}">${v.label}</button>`).join("")}</div>
-    <div class="rbox" hidden style="display:flex;flex-direction:column;gap:8px"><textarea aria-label="ردّك"></textarea>
-    <div class="btns"><button class="primary" data-act="send">إرسال الرد</button><button class="ghost" data-act="cancel">إلغاء</button></div></div>`:""}
-  ${mode==="confirm"?`<div class="btns"><button class="primary" data-act="resolve">تحسّن الأمر، شكراً</button><button data-act="reopen">ما زال يضايقني</button></div>`:""}
+  ${th.length?`<div class="thread">${th.map(m=>`<div class="msg ${m.by===me()?"me":"them"}"><div class="mh"><b>${m.by===me()?"أنت":esc(jn(m.by))}</b>${m.type&&REPLY[m.type]?`<span class="mt">${REPLY[m.type].label}</span>`:""}<small>${fmtTime(m.at)}</small></div><div data-notr>${esc(m.text)}</div></div>`).join("")}</div>`:""}
+  ${open?`<div class="composer">
+    ${!fromMe?`<div class="chips rtype">${Object.entries(REPLY).map(([k,v])=>`<input type="radio" name="rt-${i.id}" id="rt-${i.id}-${k}" value="${k}"><label for="rt-${i.id}-${k}">${v.label}</label>`).join("")}</div>`:""}
+    <textarea data-ta="${i.id}" rows="2" aria-label="ردّك" placeholder="${fromMe?"اكتب ردّك أو توضيحك…":"اكتب ردّك…"}"></textarea>
+    <div class="btns"><button class="primary" data-act="send">إرسال الرد</button>${fromMe?`<button class="okbtn" data-act="resolve">✓ تم حل المشكلة</button>`:""}</div>
+    <p class="sub">${fromMe?"تبقى الملاحظة مفتوحة ويمكنكما الرد أكثر من مرة، حتى تضغط أنت «تم حل المشكلة».":`تبقى الملاحظة مفتوحة حتى ${i.from==="h"?"يضغط":"تضغط"} ${esc(jn(i.from))} «تم حل المشكلة».`}</p>
+   </div>`:`<p class="solved">✓ تم حل المشكلة${i.resolvedAt?` · ${fmtDate(i.resolvedAt)}`:""} · ${i.from===me()?"أغلقتها أنت":(i.from==="h"?"أغلقها ":"أغلقتها ")+esc(jn(i.from))}</p>`}
  </article>`}
 function wireCards(p){
- p.querySelectorAll(".issue").forEach(card=>{const id=card.dataset.id;let type=null;
-  card.onclick=async e=>{const a=e.target.dataset.act;if(!a)return;const ref=col("issues").doc(id);
-   if(a==="open"){type=e.target.dataset.type;J.replying=id;const box=card.querySelector(".rbox");box.hidden=false;
-    const ta=box.querySelector("textarea");ta.placeholder=REPLY[type].ph;ta.focus();
-    card.querySelectorAll('[data-act="open"]').forEach(b=>b.classList.toggle("primary",b===e.target));}
-   if(a==="cancel"){J.replying=null;J.dirty=false;jRender()}
-   if(a==="send"){const t=card.querySelector("textarea").value.trim();if(!t)return toast("اكتب ردّك أولاً");
-    e.target.disabled=true;
-    try{await ref.update({status:type,reply:{type,text:t,at:Date.now()}});J.replying=null;J.dirty=false;toast("وصل ردّك");jRender()}
+ p.querySelectorAll(".issue").forEach(card=>{const id=card.dataset.id,ta=card.querySelector("textarea[data-ta]");
+  if(ta){ta.value=J.drafts[id]||"";ta.oninput=()=>{J.drafts[id]=ta.value};
+   if(J.focusTa&&J.focusTa.id===id){ta.focus();try{ta.setSelectionRange(J.focusTa.pos,J.focusTa.pos)}catch(e){}}
+   const t=J.dtype[id];if(t){const r=card.querySelector(`#rt-${id}-${t}`);if(r)r.checked=true}
+   card.querySelectorAll(".rtype input").forEach(r=>r.onchange=()=>{J.dtype[id]=r.value;if(!ta.value)ta.placeholder=REPLY[r.value].ph})}
+  card.onclick=async e=>{const a=e.target.dataset.act;if(!a)return;const it=J.issues.find(x=>x.id===id);if(!it)return;
+   if(a==="send"){const t=(ta.value||"").trim();if(!t)return toast("اكتب ردّك أولاً");
+    const type=it.from!==me()?(J.dtype[id]||null):null;e.target.disabled=true;
+    try{const now=Date.now();
+     await col("msgs").add({issue:id,by:me(),text:t,...(type?{type}:{}),at:now});
+     await col("issues").doc(id).update({lastBy:me(),lastAt:now,status:type||(it.status==="new"?"open":it.status)});
+     delete J.drafts[id];delete J.dtype[id];J.focusTa=null;
+     notify("msg",`${jn(me())} ${vb("ردّ","ردّت")} على «${it.when.slice(0,50)}»: ${t.slice(0,80)}`,id);
+     toast("وصل ردّك");jRender()}
     catch(x){e.target.disabled=false;toast("تعذّر الإرسال، حاول مرة أخرى")}}
-   if(a==="resolve"){try{await ref.update({status:"resolved",resolvedAt:Date.now()});toast("رائع، أُغلقت الملاحظة")}catch(x){toast("تعذّر الحفظ")}}
-   if(a==="reopen"){const it=J.issues.find(x=>x.id===id);try{await ref.update({status:"new",prevReply:it.reply||null,reply:null});toast(`أُعيدت إلى ${jn(them())}`)}catch(x){toast("تعذّر الحفظ")}}
+   if(a==="resolve"){
+    if(!e.target.dataset.sure){e.target.dataset.sure=1;e.target.textContent="اضغط مرة أخرى لتأكيد أن المشكلة حُلّت";return}
+    try{await col("issues").doc(id).update({status:"resolved",resolvedAt:Date.now(),lastBy:me()});
+     notify("resolve",`${jn(me())} ${vb("أغلق","أغلقت")} الملاحظة «${it.when.slice(0,50)}»: تم حل المشكلة`,id);
+     toast("رائع، تم حل المشكلة")}catch(x){toast("تعذّر الحفظ")}}
   }});
 }
 function inboxView(p){
- const need=J.issues.filter(i=>i.from===them()&&i.status==="new").sort(byImportance);
- const confirm=J.issues.filter(i=>i.from===me()&&i.status!=="new"&&i.status!=="resolved").sort(byImportance);
- const waiting=J.issues.filter(i=>i.from===them()&&i.status!=="new"&&i.status!=="resolved").sort(byImportance);
- p.innerHTML=(need.length||confirm.length||waiting.length)?`
-  ${need.length?`<h3>تنتظر ردّك</h3>${need.map(i=>issueCard(i,"reply")).join("")}`:""}
-  ${confirm.length?`<h3>ردّ ${esc(jn(them()))} على ملاحظاتك</h3>${confirm.map(i=>issueCard(i,"confirm")).join("")}`:""}
-  ${waiting.length?`<h3>تمّ الرد عليها وتنتظر تأكيد ${esc(jn(them()))}</h3>${waiting.map(i=>issueCard(i)).join("")}`:""}`
- :`<section class="panel"><h3>لا شيء ينتظرك الآن</h3><p class="muted">عندما يسجّل ${esc(jn(them()))} ملاحظة، أو يرد على ملاحظة منك، ستظهر هنا مع رقم على تبويب «دفتر الأسبوع».</p>
+ const need=J.issues.filter(needsMe).sort(byImportance);
+ const wait=J.issues.filter(i=>isOpen(i)&&!needsMe(i)).sort(byImportance);
+ p.innerHTML=(need.length||wait.length)?`
+  ${need.length?`<h3>تنتظر ردّك (${need.length})</h3>${need.map(issueCard).join("")}`:""}
+  ${wait.length?`<h3>بانتظار ردّ ${esc(jn(them()))} (${wait.length})</h3>${wait.map(issueCard).join("")}`:""}`
+ :`<section class="panel"><h3>لا شيء ينتظرك الآن</h3><p class="muted">عندما يسجّل ${esc(jn(them()))} ملاحظة أو يرد عليك، ستظهر هنا ويصلك إشعار.</p>
    <div class="btns"><button class="primary" id="goCompose">سجّل ملاحظة</button><button id="goWeek">لقاء الأسبوع</button></div></section>`;
  const gc=document.getElementById("goCompose");if(gc){gc.onclick=()=>{J.sub="compose";jRender()};document.getElementById("goWeek").onclick=()=>{J.sub="week";jRender()}}
  wireCards(p);
 }
+
+/* ===== notifications: every change one partner makes is logged and shown to the other ===== */
+function notify(kind,text,ref){if(!J.link)return;col("events").add({by:me(),kind,text,at:Date.now(),...(ref?{ref}:{})}).catch(()=>{})}
+const seenKey=()=>"wifaq-seen-"+J.link.code+"-"+me();
+function seenAt(){try{return+localStorage.getItem(seenKey())||0}catch(e){return 0}}
+function markSeen(){try{localStorage.setItem(seenKey(),String(Date.now()))}catch(e){}}
+const unread=()=>J.state==="ready"?J.events.filter(e=>e.by===them()&&e.at>seenAt()).length:0;
+const EV_ICON={issue:"✎",msg:"💬",resolve:"✓",survey:"☑",week:"★",pact:"✍",kids:"♥",reason:"✎",urgent:"!"};
+function onEvents(list){
+ const fresh=list.filter(e=>!J.evSeenIds.has(e.id));list.forEach(e=>J.evSeenIds.add(e.id));
+ if(J.evLoaded)fresh.filter(e=>e.by===them()).forEach(e=>{toast("🔔 "+e.text);
+  if(document.hidden&&window.Notification&&Notification.permission==="granted"&&!SERVER){try{new Notification("ميزان الوفاق",{body:e.text,icon:"icon-192.png"})}catch(x){}}});
+ J.evLoaded=true;
+}
+function bellHTML(){const n=unread();return`<button class="bell ${n?"has":""}" id="bell" aria-expanded="${!!J.bellOpen}">🔔 الإشعارات${n?` <span class="badge">${n}</span>`:""}</button>`}
+function bellPanel(){if(!J.bellOpen)return"";const s=seenAt(),ev=J.events.slice(0,30);
+ return`<section class="panel bellp"><div class="who"><h3>الإشعارات</h3><button class="ghost" id="bellX">إغلاق</button></div>
+  ${pushBox()}
+  ${ev.length?`<ul class="evlist">${ev.map(e=>`<li class="${e.by===them()&&e.at>s?"new":""}" ${e.ref?`data-ref="${e.ref}"`:""}><span class="evi">${EV_ICON[e.kind]||"•"}</span><div><div data-notr>${esc(e.text)}</div><small>${fmtTime(e.at)}${e.by===me()?" · منك":""}</small></div></li>`).join("")}</ul>`
+   :`<p class="muted">لا توجد إشعارات بعد. سيظهر هنا كل ما يفعله ${esc(jn(them()))}: ملاحظة جديدة، أو رد، أو حل مشكلة، أو إكمال الاستبيان، أو توقيع ميثاق.</p>`}
+ </section>`}
+function pushBox(){
+ if(!SERVER||!("serviceWorker"in navigator)||!("PushManager"in window)){
+  return SERVER?`<p class="sub">إشعارات الهاتف غير مدعومة في هذا المتصفح. على الآيفون: أضف الموقع إلى الشاشة الرئيسية أولاً، ثم افتحه من الأيقونة.</p>`:""}
+ const st=window.Notification?Notification.permission:"default";
+ if(st==="denied")return`<p class="sub">الإشعارات محظورة في هذا المتصفح. افتح إعدادات الموقع في المتصفح واسمح بالإشعارات.</p>`;
+ return J.pushOn?`<p class="sub" style="color:var(--ok)">✓ إشعارات الهاتف مفعّلة على هذا الجهاز.</p>`
+  :`<div class="pushbox"><p>فعّل الإشعارات ليصلك تنبيه على الهاتف حتى والموقع مغلق.</p><button class="primary" id="pushOn">تفعيل الإشعارات على هذا الجهاز</button>
+   <p class="sub">على الآيفون: أضف الموقع إلى الشاشة الرئيسية أولاً، ثم افتحه من الأيقونة وفعّل الإشعارات.</p></div>`}
+const b64u=s=>{const p="=".repeat((4-s.length%4)%4),b=atob((s+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+async function enablePush(btn){
+ btn.disabled=true;
+ try{const perm=await Notification.requestPermission();if(perm!=="granted"){btn.disabled=false;toast("لم يُسمح بالإشعارات");return}
+  const reg=await navigator.serviceWorker.ready,{key}=await WIFAQ_API.call("GET","/api/push/key");
+  const sub=(await reg.pushManager.getSubscription())||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64u(key)});
+  await WIFAQ_API.call("POST","/api/push/subscribe",{sub:sub.toJSON()});
+  J.pushOn=true;toast("تم تفعيل الإشعارات");jRender()}
+ catch(e){btn.disabled=false;toast("تعذّر تفعيل الإشعارات على هذا الجهاز")}}
+async function checkPush(){if(!SERVER||!("serviceWorker"in navigator)||!("PushManager"in window))return;
+ try{const reg=await navigator.serviceWorker.getRegistration();const s=reg&&await reg.pushManager.getSubscription();
+  if(s&&Notification.permission==="granted"){J.pushOn=true;WIFAQ_API.call("POST","/api/push/subscribe",{sub:s.toJSON()}).catch(()=>{})}}catch(e){}}
+function wireBell(){
+ const b=document.getElementById("bell");if(!b)return;
+ b.onclick=()=>{J.bellOpen=!J.bellOpen;if(J.bellOpen)setTimeout(markSeen,1500);jRender()};
+ const x=document.getElementById("bellX");if(x)x.onclick=()=>{J.bellOpen=false;markSeen();jRender()};
+ const po=document.getElementById("pushOn");if(po)po.onclick=()=>enablePush(po);
+ jv.querySelectorAll(".evlist li[data-ref]").forEach(li=>li.onclick=()=>{J.bellOpen=false;markSeen();J.sub="inbox";jRender();
+  const c=jv.querySelector(`.issue[data-id="${li.dataset.ref}"]`)||(J.sub="history",jRender(),jv.querySelector(`.issue[data-id="${li.dataset.ref}"]`));
+  if(c){c.scrollIntoView({behavior:"smooth",block:"center"});c.classList.add("flash");setTimeout(()=>c.classList.remove("flash"),1600)}});
+}
+
 const URG={hour:"خلال ساعة",tonight:"الليلة",tomorrow:"غداً"};
 function urgDue(k,t=Date.now()){const d=new Date(t);
  if(k==="hour")return t+36e5;
@@ -991,7 +1086,8 @@ function composeView(p){
  g("cSend").onclick=async e=>{const f=val("cFeel"),w=g("cWhen").value.trim();
   if(!w||!f){g("cErr").textContent="اكتب الموقف واختر شعورك قبل الإرسال.";g("cErr").hidden=false;return}
   e.target.disabled=true;
-  try{await col("issues").add({from:me(),axis:g("cAxis").value,when:w,feel:f,need:g("cNeed").value.trim(),kids:g("cKids").checked,...(g("cUrg").checked?{urgent:val("cWhenTalk")||"hour",due:urgDue(val("cWhenTalk")||"hour")}:{}),sev:+val("cSev"),status:"new",created:Date.now(),week:weekKey()});
+  try{await col("issues").add({from:me(),axis:g("cAxis").value,when:w,feel:f,need:g("cNeed").value.trim(),kids:g("cKids").checked,...(g("cUrg").checked?{urgent:val("cWhenTalk")||"hour",due:urgDue(val("cWhenTalk")||"hour")}:{}),sev:+val("cSev"),status:"new",lastBy:me(),lastAt:Date.now(),created:Date.now(),week:weekKey()});
+   notify(g("cUrg").checked?"urgent":"issue",`${jn(me())} ${vb("سجّل","سجّلت")} ${g("cUrg").checked?"طلب معالجة عاجلة":"ملاحظة جديدة"}: «${w.slice(0,60)}»`);
    J.lastUrgent=g("cUrg").checked?(val("cWhenTalk")||"hour"):null;J.preUrgent=false;J.dirty=false;J.justSent=true;jRender()}catch(x){e.target.disabled=false;g("cErr").textContent="تعذّر الإرسال. تحقق من الاتصال وحاول مرة أخرى.";g("cErr").hidden=false}};
 }
 function weekView(p){
@@ -1026,7 +1122,7 @@ function weekView(p){
   if(!sc){const e=document.getElementById("wErr");e.textContent="اختر رقماً من 1 إلى 10.";e.hidden=false;return}
   s.disabled=true;
   try{await col("checkins").doc(wk+"_"+me()).set({week:wk,role:me(),score:+sc,thanks:document.getElementById("wThanks").value.trim(),wish:document.getElementById("wWish").value.trim(),at:Date.now()});
-   J.dirty=false;toast("حُفظ تقييم الأسبوع");jRender()}catch(x){s.disabled=false;toast("تعذّر الحفظ")}};
+   J.dirty=false;notify("week",`${jn(me())} ${vb("قيّم","قيّمت")} هذا الأسبوع`);toast("حُفظ تقييم الأسبوع");jRender()}catch(x){s.disabled=false;toast("تعذّر الحفظ")}};
 }
 function trendChart(){
  const weeks=[...new Set(J.checks.map(c=>c.week))].sort().slice(-8);
@@ -1053,7 +1149,7 @@ function pactView(p){
   <p class="note">إذا خالف أحدكما بنداً، سجّلها الطرف الآخر في «سجّل ملاحظة» تحت مجال «الضيق المادي»، ليعتذر أو يعمل عليها.</p></section>`;
  document.getElementById("pAll").onclick=()=>{p.querySelectorAll(".prow input").forEach(c=>c.checked=true);J.dirty=true};
  document.getElementById("pSave").onclick=async e=>{const ok=[...p.querySelectorAll(".prow input:checked")].map(c=>+c.value);e.target.disabled=true;
-  try{await col("pact").doc(me()).set({ok,at:Date.now()});J.dirty=false;toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
+  try{await col("pact").doc(me()).set({ok,at:Date.now()});J.dirty=false;notify("pact",`${jn(me())} ${vb("وقّع","وقّعت")} ${ok.length} من بنود ميثاق الضيق المادي`);toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
 }
 
 /* ===== children: keep them in the shade of both parents ===== */
@@ -1095,10 +1191,10 @@ function kidsView(p){
  p.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{const l=kidsList().filter((_,i)=>i!=b.dataset.del);try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({kids:l})}catch(e){toast("تعذّر الحذف")}});
  document.getElementById("kAdd").onclick=async()=>{const n=document.getElementById("kName").value.trim(),y=+document.getElementById("kYear").value.trim()||null;
   if(!n)return toast("اكتب اسم الابن أو الابنة");
-  try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({kids:[...kidsList(),{n,y}]});J.dirty=false;toast("أُضيف")}catch(e){toast("تعذّر الحفظ")}};
+  try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({kids:[...kidsList(),{n,y}]});J.dirty=false;notify("kids",`${jn(me())} ${vb("أضاف","أضافت")} ${n} إلى قائمة الأبناء`);toast("أُضيف")}catch(e){toast("تعذّر الحفظ")}};
  document.getElementById("kNone").onchange=async e=>{try{await J.db.doc(`couples/${J.link.code}/meta/info`).update({noKids:e.target.checked})}catch(x){toast("تعذّر الحفظ")}};
  document.getElementById("kpSave").onclick=async e=>{const ok=[...p.querySelectorAll(".prow input:checked")].map(c=>+c.value);e.target.disabled=true;
-  try{await col("pact").doc("kids_"+me()).set({ok,at:Date.now()});J.dirty=false;toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
+  try{await col("pact").doc("kids_"+me()).set({ok,at:Date.now()});J.dirty=false;notify("kids",`${jn(me())} ${vb("وقّع","وقّعت")} ${ok.length} من بنود ميثاق الأبناء`);toast("حُفظ توقيعك");jRender()}catch(x){e.target.disabled=false;toast("تعذّر الحفظ")}};
 }
 
 /* ===== "we are in a conflict now" pause screen ===== */
@@ -1132,6 +1228,7 @@ function historyView(p){
  p.innerHTML=`<div class="subtabs">${[["all","الكل"],["open","المفتوحة"],["done","المحلولة"]].map(([k,t])=>`<button data-f="${k}" aria-pressed="${f===k}">${t}</button>`).join("")}</div>
   ${list.length?list.map(i=>issueCard(i)).join(""):`<section class="panel"><p class="muted">لا توجد ملاحظات هنا بعد.</p></section>`}`;
  p.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{J.filter=b.dataset.f;jRender()});
+ wireCards(p);
 }
 jInit();
 </script>
